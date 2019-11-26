@@ -47,7 +47,17 @@ Other limitations as follows:
   It will be integrated into this component soon. For now, you can just ignore
   that screen (e.g. press menu on the remote).
 
-### Changes in this commit
+### Changes
+
+#### pyatv 0.4.0a6
+
+Fixes this problem:
+
+```python
+packages/pyatv/mrp/pairing.py", line 32, in close await self.connection.close() TypeError: object NoneType can't be used in 'await' expression
+```
+
+#### pyatv 0.4.0a5
 
 Fixes this problem:
 
