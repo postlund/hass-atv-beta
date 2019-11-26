@@ -47,6 +47,16 @@ Other limitations as follows:
   It will be integrated into this component soon. For now, you can just ignore
   that screen (e.g. press menu on the remote).
 
+### Changes in this commit
+
+Fixes this problem:
+
+```python
+AttributeError: 'Credentials' object has no attribute 'split'
+```
+
+In case of problems, remove the Apple TV entity and re-pair.
+
 ## Installing
 
 I recommend that you install [HACS](https://hacs.xyz/) and add this repository
