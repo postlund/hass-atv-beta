@@ -1,9 +1,10 @@
 """Remote control support for Apple TV."""
+
+from homeassistant.core import callback
+from homeassistant.const import CONF_NAME
 from homeassistant.components import remote
 
-from homeassistant.const import CONF_NAME
-
-from .const import DOMAIN, KEY_API, KEY_POWER, CONF_IDENTIFIER
+from .const import DOMAIN, KEY_MANAGER, CONF_IDENTIFIER
 
 
 async def async_setup_platform(hass, config, async_add_entities, discovery_info=None):
@@ -13,32 +14,42 @@ async def async_setup_platform(hass, config, async_add_entities, discovery_info=
 
     identifier = discovery_info[CONF_IDENTIFIER]
     name = discovery_info[CONF_NAME]
-    api = hass.data[KEY_API][identifier]
-    power = hass.data[KEY_POWER][identifier]
-
-    async_add_entities([AppleTVRemote(api, power, name)])
+    manager = hass.data[KEY_MANAGER][identifier]
+    async_add_entities([AppleTVRemote(name, identifier, manager)])
 
 
 class AppleTVRemote(remote.RemoteDevice):
     """Device that sends commands to an Apple TV."""
 
-    def __init__(self, atv, power, name):
+    def __init__(self, name, identifier, manager):
         """Initialize device."""
-        self._atv = atv
+        self.atv = None
         self._name = name
-        self._power = power
-        self._power.listeners.append(self)
+        self._identifier = identifier
+        self._manager = manager
+
+    async def async_added_to_hass(self):
+        """Handle when an entity is about to be added to Home Assistant."""
+        self._manager.listeners.append(self)
+
+    @callback
+    def device_connected(self):
+        self.atv = self._manager.atv
+
+    @callback
+    def device_disconnected(self):
+        self.atv = None
 
     @property
     def device_info(self):
         """Return the device info."""
         return {
-            "identifiers": {(DOMAIN, self.unique_id)},
+            "identifiers": {(DOMAIN, self._identifier)},
             "manufacturer": "Apple",
             "model": "Remote",
             "name": self.name,
             "sw_version": "0.0",
-            "via_device": (DOMAIN, self._atv.metadata.device_id),
+            "via_device": (DOMAIN, self._identifier),
         }
 
     @property
@@ -49,12 +60,12 @@ class AppleTVRemote(remote.RemoteDevice):
     @property
     def unique_id(self):
         """Return a unique ID."""
-        return "remote_" + self._atv.metadata.device_id
+        return "remote_" + self._identifier
 
     @property
     def is_on(self):
         """Return true if device is on."""
-        return self._power.turned_on
+        return self.atv is not None
 
     @property
     def should_poll(self):
@@ -66,14 +77,14 @@ class AppleTVRemote(remote.RemoteDevice):
 
         This method is a coroutine.
         """
-        await self._power.set_power_on(True)
+        await self._manager.connect()
 
     async def async_turn_off(self, **kwargs):
         """Turn the device off.
 
         This method is a coroutine.
         """
-        await self._power.set_power_on(False)
+        await self._manager.disconnect()
 
     def async_send_command(self, command, **kwargs):
         """Send a command to one device.
@@ -83,9 +94,9 @@ class AppleTVRemote(remote.RemoteDevice):
         # Send commands in specified order but schedule only one coroutine
         async def _send_commands():
             for single_command in command:
-                if not hasattr(self._atv.remote_control, single_command):
+                if not hasattr(self.atv.remote_control, single_command):
                     continue
 
-                await getattr(self._atv.remote_control, single_command)()
+                await getattr(self.atv.remote_control, single_command)()
 
         return _send_commands()

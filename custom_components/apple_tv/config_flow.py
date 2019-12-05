@@ -5,21 +5,29 @@ from random import randrange
 
 import voluptuous as vol
 
+from homeassistant.core import callback
 from homeassistant import core, config_entries, exceptions
 from homeassistant.const import CONF_PIN, CONF_NAME, CONF_PROTOCOL, CONF_TYPE
-from .const import DOMAIN, CONF_IDENTIFIER, CONF_CREDENTIALS
+from .const import DOMAIN, CONF_IDENTIFIER, CONF_CREDENTIALS, CONF_START_OFF
 
 _LOGGER = logging.getLogger(__name__)
 
 DATA_SCHEMA = vol.Schema({vol.Required(CONF_IDENTIFIER): str})
 INPUT_PIN_SCHEMA = vol.Schema({vol.Required(CONF_PIN, default=None): int})
 
+DEFAULT_START_OFF = False
 
 class AppleTVConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Handle a config flow for Apple TV."""
 
     VERSION = 1
     CONNECTION_CLASS = config_entries.CONN_CLASS_LOCAL_PUSH
+
+    @staticmethod
+    @callback
+    def async_get_options_flow(config_entry):
+        """Get options flow for this handler."""
+        return AppleTVOptionsFlow(config_entry)
 
     def __init__(self):
         self._atv = None
@@ -221,7 +229,7 @@ class AppleTVConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             title=self._atv.name,
             data={
                 CONF_IDENTIFIER: self._atv.identifier,
-                CONF_PROTOCOL: self._protocol,
+                CONF_PROTOCOL: self._atv.main_service(),
                 CONF_NAME: self._atv.name,
                 CONF_CREDENTIALS: self._credentials,
             },
@@ -248,6 +256,39 @@ class AppleTVConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 if entry.data[CONF_IDENTIFIER] == identifier:
                     return True
         return False
+
+
+class AppleTVOptionsFlow(config_entries.OptionsFlow):
+    """Handle Apple TV options."""
+
+    def __init__(self, config_entry):
+        """Initialize Apple TV options flow."""
+        self.config_entry = config_entry
+        self.options = dict(config_entry.options)
+
+    async def async_step_init(self, user_input=None):
+        """Manage the Apple TV options."""
+        return await self.async_step_device_options()
+
+    async def async_step_device_options(self, user_input=None):
+        """Manage the devices options."""
+        if user_input is not None:
+            self.options[CONF_START_OFF] = user_input[CONF_START_OFF]
+            return self.async_create_entry(title="", data=self.options)
+
+        return self.async_show_form(
+            step_id="device_options",
+            data_schema=vol.Schema(
+                {
+                    vol.Optional(
+                        CONF_START_OFF,
+                        default=self.config_entry.options.get(
+                            CONF_START_OFF, DEFAULT_START_OFF
+                        ),
+                    ): bool,
+                }
+            ),
+        )
 
 
 class DeviceNotFound(exceptions.HomeAssistantError):

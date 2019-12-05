@@ -47,5 +47,15 @@
       "backoff": "Device does not accept pairing reqests at this stage, try again later.",
       "timeout": "Timed out while waiting for device"
     }
+  },
+  "options": {
+    "step": {
+      "device_options": {
+        "description": "Configure general device settings",
+        "data": {
+          "start_off": "Do not turn on device when starting Home Assistant"
+        }
+      }
+    }
   }
 }

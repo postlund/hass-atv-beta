@@ -1,5 +1,8 @@
 # Apple TV Beta Component
 
+**TL;DR** If you try this component, read the changelog below to know what has
+changed and what to test!
+
 In tvOS 13, Apple dropped their old legacy protocols inherited from iTunes
 (DAAP/DACP/DMAP) and now rely fully on their new protocol, Media Remote Protocol.
 Or MRP for short. This broke the Apple TV component in Home Assistant as
@@ -41,13 +44,29 @@ Other limitations as follows:
 * Already stated in the feature list, but artwork does not work and appears to be
   a bit tricky to fix. We'll see when that happens.
 
-* When pairing with an Apple TV running tvOS, the initial screen with a PIN code
-  will not disappear after pairing (so it appears that you get three PIN input
-  screens). This is a known issue and is fixed on the `master` branch in `pyatv`.
-  It will be integrated into this component soon. For now, you can just ignore
-  that screen (e.g. press menu on the remote).
-
 ### Changes
+
+#### pystv 0.4.0a7
+
+_Beware: this release might be a bit buggy, please help me hunt the bugs down._
+
+Fixes problems with leading zeros in MRP pairing:
+
+https://github.com/postlund/pyatv/issues/291
+
+Hopefully AirPlay streaming works as expected now (please try):
+
+https://github.com/postlund/pyatv/issues/266
+
+Re-connect logic is in place, so re-connections are made automatically.
+Might be a bit spammy, will change that later.
+
+Turn on and off should work now. Please note that this *only* means that
+"turn off" disconnects from the device so it appears as off in Home Assistant.
+It does **not** turn off your Apple TV.
+
+I added the "start off" option as well. You can configure it via Options
+by selecting your Apple TV from the Integrations page.
 
 #### pyatv 0.4.0a6
 

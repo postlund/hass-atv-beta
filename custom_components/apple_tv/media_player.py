@@ -27,10 +27,11 @@ from homeassistant.const import (
     STATE_PAUSED,
     STATE_PLAYING,
     STATE_STANDBY,
+    STATE_UNKNOWN,
 )
 import homeassistant.util.dt as dt_util
 
-from .const import DOMAIN, KEY_API, KEY_POWER, CONF_IDENTIFIER
+from .const import DOMAIN, KEY_MANAGER, CONF_IDENTIFIER
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -51,37 +52,47 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
     """Load Apple TV media player based on a config entry."""
     identifier = config_entry.data[CONF_IDENTIFIER]
     name = config_entry.data[CONF_NAME]
-    api = hass.data[KEY_API][identifier]
-    power = hass.data[KEY_POWER][identifier]
-    async_add_entities([AppleTvDevice(api, name, power)])
+    manager = hass.data[KEY_MANAGER][identifier]
+    async_add_entities([AppleTvDevice(name, identifier, manager)])
 
 
 class AppleTvDevice(MediaPlayerDevice):
     """Representation of an Apple TV device."""
 
-    def __init__(self, atv, name, power):
+    def __init__(self, name, identifier, manager):
         """Initialize the Apple TV device."""
-        self.atv = atv
+        self.atv = None
         self._name = name
+        self._identifier = identifier
         self._playing = None
-        self._power = power
-        self._power.listeners.append(self)
-        self.atv.push_updater.listener = self
+        self._manager = manager
 
     async def async_added_to_hass(self):
         """Handle when an entity is about to be added to Home Assistant."""
-        await self._power.init()
+        self._manager.listeners.append(self)
+        await self._manager.init()
+
+    @callback
+    def device_connected(self):
+        """Handle when connection is made to device."""
+        self.atv = self._manager.atv
+        self.atv.push_updater.listener = self
+
+    @callback
+    def device_disconnected(self):
+        """Handle when connection was lost to device."""
+        self.atv = None
 
     @property
     def device_info(self):
         """Return the device info."""
         return {
-            "identifiers": {(DOMAIN, self.unique_id)},
+            "identifiers": {(DOMAIN, self._identifier)},
             "manufacturer": "Apple",
             "model": "Media Player",
             "name": self.name,
             "sw_version": "0.0",
-            "via_device": (DOMAIN, self.atv.metadata.device_id),
+            "via_device": (DOMAIN, self._identifier),
         }
 
     @property
@@ -92,7 +103,7 @@ class AppleTvDevice(MediaPlayerDevice):
     @property
     def unique_id(self):
         """Return a unique ID."""
-        return "mp_" + self.atv.metadata.device_id
+        return "mp_" + self._identifier
 
     @property
     def should_poll(self):
@@ -102,7 +113,9 @@ class AppleTvDevice(MediaPlayerDevice):
     @property
     def state(self):
         """Return the state of the device."""
-        if not self._power.turned_on:
+        if self._manager.is_connecting:
+            return STATE_UNKNOWN
+        if not self.atv:
             return STATE_OFF
 
         if self._playing:
@@ -127,21 +140,15 @@ class AppleTvDevice(MediaPlayerDevice):
             return STATE_STANDBY  # Bad or unknown state?
 
     @callback
-    def playstatus_update(self, updater, playing):
+    def playstatus_update(self, _, playing):
         """Print what is currently playing when it changes."""
         self._playing = playing
         self.async_schedule_update_ha_state()
 
     @callback
-    def playstatus_error(self, updater, exception):
+    def playstatus_error(self, _, exception):
         """Inform about an error and restart push updates."""
         _LOGGER.warning("A %s error occurred: %s", exception.__class__, exception)
-
-        # This will wait 10 seconds before restarting push updates. If the
-        # connection continues to fail, it will flood the log (every 10
-        # seconds) until it succeeds. A better approach should probably be
-        # implemented here later.
-        updater.start(initial_delay=10)
         self._playing = None
         self.async_schedule_update_ha_state()
 
@@ -204,7 +211,7 @@ class AppleTvDevice(MediaPlayerDevice):
             title = self._playing.title
             return title if title else "No title"
 
-        return f"Establishing a connection to {self._name}..."
+        return self._manager.message
 
     @property
     def supported_features(self):
@@ -213,12 +220,12 @@ class AppleTvDevice(MediaPlayerDevice):
 
     async def async_turn_on(self):
         """Turn the media player on."""
-        await self._power.set_power_on(True)
+        await self._manager.connect()
 
     async def async_turn_off(self):
         """Turn the media player off."""
         self._playing = None
-        await self._power.set_power_on(False)
+        await self._manager.disconnect()
 
     def async_media_play_pause(self):
         """Pause media on media player.

@@ -6,7 +6,6 @@ CONF_IDENTIFIER = "identifier"
 CONF_PROTOCOL = "protocol"
 CONF_CREDENTIALS = "credentials"
 
-KEY_API = "appletv_api"
-KEY_POWER = "appletv_power"
+CONF_START_OFF = "start_off"
 
-APPLE_TV_DEVICE_TYPES = ["media_player", "remote"]
+KEY_MANAGER = "appletv_manager"
