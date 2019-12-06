@@ -229,7 +229,7 @@ class AppleTVConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             title=self._atv.name,
             data={
                 CONF_IDENTIFIER: self._atv.identifier,
-                CONF_PROTOCOL: self._atv.main_service(),
+                CONF_PROTOCOL: self._atv.main_service().protocol,
                 CONF_NAME: self._atv.name,
                 CONF_CREDENTIALS: self._credentials,
             },

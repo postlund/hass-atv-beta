@@ -46,6 +46,16 @@ Other limitations as follows:
 
 ### Changes
 
+#### pyatv 0.4.0a8
+
+Fixes this issue:
+
+    TypeError: Object of type MrpService is not JSON serializable
+
+Remove your integration and add it again and it should work.
+
+Leading zeros in PIN when pairing with AirPlay should work now. (#307)
+
 #### pystv 0.4.0a7
 
 _Beware: this release might be a bit buggy, please help me hunt the bugs down._
