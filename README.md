@@ -46,6 +46,11 @@ Other limitations as follows:
 
 ### Changes
 
+#### pyatv 0.4.0a9
+
+This is a small fix that makes idle state work for MRP (a device was never
+shown as idle before).
+
 #### pyatv 0.4.0a8
 
 Fixes this issue:
