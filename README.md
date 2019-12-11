@@ -35,16 +35,15 @@ Other limitations as follows:
 
 * This component will completely override the builtin component!
 
-* The component will not handle re-connects properly. So if the connection is
-  lost, e.g. due to reboots, it will probably not recover until you restart
-  Home Assistant. Fixing this is next on the list.
-
 * Using YAML is not supported now, but will be added in the future.
 
-* Already stated in the feature list, but artwork does not work and appears to be
-  a bit tricky to fix. We'll see when that happens.
-
 ### Changes
+
+#### pyatv 0.4.0a10
+
+Finally support for artwork!
+
+Improvements to AirPlay to make it more reliable. Should hopefully fix #313.
 
 #### pyatv 0.4.0a9
 

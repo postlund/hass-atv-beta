@@ -196,9 +196,11 @@ class AppleTvDevice(MediaPlayerDevice):
 
     async def async_get_media_image(self):
         """Fetch media image of current playing image."""
-        # state = self.state
-        # if self._playing and state not in [STATE_OFF, STATE_IDLE]:
-        #    return (await self.atv.metadata.artwork()), "image/png"
+        state = self.state
+        if self._playing and state not in [STATE_OFF, STATE_IDLE]:
+            artwork = await self.atv.metadata.artwork()
+            if artwork:
+                return artwork.bytes, artwork.mimetype
 
         return None, None
 
