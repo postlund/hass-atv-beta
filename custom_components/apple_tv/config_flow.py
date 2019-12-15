@@ -126,7 +126,10 @@ class AppleTVConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             if self._is_already_configured(self._identifier):
                 return self.async_abort(reason="already_configured")
 
-            return await self.async_begin_pairing()
+            try:
+                return await self.async_begin_pairing()
+            except:
+                _LOGGER.exception("pair step failed")
         return self.async_show_form(
             step_id="confirm", description_placeholders={"name": self._atv.name})
 
@@ -152,10 +155,13 @@ class AppleTVConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             await self._pairing.begin()
         except asyncio.TimeoutError:
             abort_reason = "timeout"
+            _LOGGER.error("timeout")
         except OSError:
+            _LOGGER.exception("bad error")
             return await self.async_step_service_problem()
         except exceptions.BackOffError:
             abort_reason = "backoff"
+            _LOGGER.error("backoff")
         except Exception:
             _LOGGER.exception("Unexpected exception")
             abort_reason = "unrecoverable_error"
@@ -177,18 +183,24 @@ class AppleTVConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         from pyatv import convert
 
         errors = {}
+        _LOGGER.error("input pin")
         if user_input is not None:
             try:
+                _LOGGER.error("got pin %d", user_input[CONF_PIN])
                 self._pairing.pin(user_input[CONF_PIN])
+                _LOGGER.error("before finish")
                 await self._pairing.finish()
+                _LOGGER.error("creds: %s", self._pairing.service.credentials)
                 self._credentials[self._protocol] = self._pairing.service.credentials
                 return await self.async_begin_pairing()
             except pyatv.exceptions.DeviceAuthenticationError:
+                _LOGGER.exception("auth errot")
                 errors["base"] = "auth"
             except Exception as ex:  # pylint: disable=broad-except
                 _LOGGER.exception("Unexpected exception")
                 errors["base"] = "unknown"
 
+        _LOGGER.error("will show form now")
         return self.async_show_form(
             step_id="pair_with_pin", data_schema=INPUT_PIN_SCHEMA, errors=errors,
             description_placeholders={
