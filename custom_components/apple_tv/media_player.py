@@ -1,7 +1,7 @@
 """Support for Apple TV media player."""
 import logging
 
-import pyatv.const as atv_const
+from pyatv.const import DeviceState, MediaType
 
 from homeassistant.core import callback
 from homeassistant.components.media_player import MediaPlayerDevice
@@ -35,6 +35,8 @@ from .const import DOMAIN, KEY_MANAGER, CONF_IDENTIFIER
 
 _LOGGER = logging.getLogger(__name__)
 
+PARALLEL_UPDATES = 0
+
 SUPPORT_APPLE_TV = (
     SUPPORT_TURN_ON
     | SUPPORT_TURN_OFF
@@ -52,7 +54,7 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
     """Load Apple TV media player based on a config entry."""
     identifier = config_entry.data[CONF_IDENTIFIER]
     name = config_entry.data[CONF_NAME]
-    manager = hass.data[KEY_MANAGER][identifier]
+    manager = hass.data[DOMAIN][identifier]
     async_add_entities([AppleTvDevice(name, identifier, manager)])
 
 
@@ -120,20 +122,15 @@ class AppleTvDevice(MediaPlayerDevice):
 
         if self._playing:
 
-            state = self._playing.play_state
-            if state in (
-                atv_const.PLAY_STATE_IDLE,
-                atv_const.PLAY_STATE_NO_MEDIA,
-                atv_const.PLAY_STATE_LOADING,
-            ):
+            state = self._playing.device_state
+            if state in (DeviceState.Idle, DeviceState.Loading):
                 return STATE_IDLE
-            if state == atv_const.PLAY_STATE_PLAYING:
+            if state == DeviceState.Playing:
                 return STATE_PLAYING
             if state in (
-                atv_const.PLAY_STATE_PAUSED,
-                atv_const.PLAY_STATE_FAST_FORWARD,
-                atv_const.PLAY_STATE_FAST_BACKWARD,
-                atv_const.PLAY_STATE_STOPPED,
+                DeviceState.Paused,
+                DeviceState.Seeking,
+                DeviceState.Stopped
             ):
                 # Catch fast forward/backward here so "play" is default action
                 return STATE_PAUSED
@@ -158,11 +155,11 @@ class AppleTvDevice(MediaPlayerDevice):
         if self._playing:
 
             media_type = self._playing.media_type
-            if media_type == atv_const.MEDIA_TYPE_VIDEO:
+            if media_type == MediaType.Video:
                 return MEDIA_TYPE_VIDEO
-            if media_type == atv_const.MEDIA_TYPE_MUSIC:
+            if media_type == MediaType.Music:
                 return MEDIA_TYPE_MUSIC
-            if media_type == atv_const.MEDIA_TYPE_TV:
+            if media_type == MediaType.TV:
                 return MEDIA_TYPE_TVSHOW
 
     @property

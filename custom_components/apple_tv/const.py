@@ -2,6 +2,7 @@
 
 DOMAIN = "apple_tv"
 
+CONF_ADDRESS = "address"
 CONF_IDENTIFIER = "identifier"
 CONF_PROTOCOL = "protocol"
 CONF_CREDENTIALS = "credentials"

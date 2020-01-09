@@ -7,6 +7,9 @@ from homeassistant.components import remote
 from .const import DOMAIN, KEY_MANAGER, CONF_IDENTIFIER
 
 
+PARALLEL_UPDATES = 0
+
+
 async def async_setup_platform(hass, config, async_add_entities, discovery_info=None):
     """Set up the Apple TV remote platform."""
     if not discovery_info:
@@ -14,7 +17,7 @@ async def async_setup_platform(hass, config, async_add_entities, discovery_info=
 
     identifier = discovery_info[CONF_IDENTIFIER]
     name = discovery_info[CONF_NAME]
-    manager = hass.data[KEY_MANAGER][identifier]
+    manager = hass.data[DOMAIN][identifier]
     async_add_entities([AppleTVRemote(name, identifier, manager)])
 
 

@@ -2,13 +2,15 @@
 import asyncio
 import logging
 from random import randrange
+from ipaddress import ip_address
 
 import voluptuous as vol
 
-from homeassistant.core import callback
 from homeassistant import core, config_entries, exceptions
+from homeassistant.core import callback
 from homeassistant.const import CONF_PIN, CONF_NAME, CONF_PROTOCOL, CONF_TYPE
-from .const import DOMAIN, CONF_IDENTIFIER, CONF_CREDENTIALS, CONF_START_OFF
+from homeassistant.helpers.aiohttp_client import async_get_clientsession
+from .const import DOMAIN, CONF_ADDRESS, CONF_IDENTIFIER, CONF_CREDENTIALS, CONF_START_OFF
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -16,6 +18,7 @@ DATA_SCHEMA = vol.Schema({vol.Required(CONF_IDENTIFIER): str})
 INPUT_PIN_SCHEMA = vol.Schema({vol.Required(CONF_PIN, default=None): int})
 
 DEFAULT_START_OFF = False
+
 
 class AppleTVConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Handle a config flow for Apple TV."""
@@ -100,7 +103,13 @@ class AppleTVConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
             return False
 
-        atvs = await pyatv.scan(self.hass.loop, timeout=3)
+        def _host_filter():
+            try:
+                return [ip_address(self._identifier)]
+            except ValueError:
+                return None
+
+        atvs = await pyatv.scan(self.hass.loop, timeout=3, hosts=_host_filter())
         matches = [atv for atv in atvs if _matches_device(atv)]
         if not matches:
             raise DeviceNotFound([atv.name.encode('ascii', 'ignore').decode() for atv in atvs])
@@ -116,7 +125,7 @@ class AppleTVConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         # If credentials were found, save them
         for service in self._atv.services:
             if service.credentials:
-                self._credentials[service.protocol] = service.credentials
+                self._credentials[service.protocol.value] = service.credentials
 
         return await self.async_step_confirm()
 
@@ -148,7 +157,9 @@ class AppleTVConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         # Initiate the pairing process
         abort_reason = None
         try:
-            self._pairing = await pair(self._atv, self._protocol, self.hass.loop)
+            session = async_get_clientsession(self.hass)
+            self._pairing = await pair(
+                self._atv, self._protocol, self.hass.loop, session=session)
             await self._pairing.begin()
         except asyncio.TimeoutError:
             abort_reason = "timeout"
@@ -156,6 +167,8 @@ class AppleTVConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             return await self.async_step_service_problem()
         except exceptions.BackOffError:
             abort_reason = "backoff"
+        except exceptions.AuthenticationError:
+            abort_reason = "auth"
         except Exception:
             _LOGGER.exception("Unexpected exception")
             abort_reason = "unrecoverable_error"
@@ -181,7 +194,7 @@ class AppleTVConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             try:
                 self._pairing.pin(user_input[CONF_PIN])
                 await self._pairing.finish()
-                self._credentials[self._protocol] = self._pairing.service.credentials
+                self._credentials[self._protocol.value] = self._pairing.service.credentials
                 return await self.async_begin_pairing()
             except pyatv.exceptions.DeviceAuthenticationError:
                 errors["base"] = "auth"
@@ -217,7 +230,7 @@ class AppleTVConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         """Inform user that a service will not be added."""
         from pyatv import convert
         if user_input is not None:
-            self._credentials[self._protocol] = None
+            self._credentials[self._protocol.value] = None
             return await self.async_begin_pairing()
 
         return self.async_show_form(
@@ -229,9 +242,10 @@ class AppleTVConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             title=self._atv.name,
             data={
                 CONF_IDENTIFIER: self._atv.identifier,
-                CONF_PROTOCOL: self._atv.main_service().protocol,
+                CONF_PROTOCOL: self._atv.main_service().protocol.value,
                 CONF_NAME: self._atv.name,
                 CONF_CREDENTIALS: self._credentials,
+                CONF_ADDRESS: str(self._atv.address),
             },
         )
 
@@ -239,11 +253,11 @@ class AppleTVConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         def _needs_pairing(protocol):
             if self._atv.get_service(protocol) is None:
                 return False
-            return protocol not in self._credentials
+            return protocol.value not in self._credentials
 
-        from pyatv import const
+        from pyatv.const import Protocol
 
-        protocols = [const.PROTOCOL_MRP, const.PROTOCOL_DMAP, const.PROTOCOL_AIRPLAY]
+        protocols = [Protocol.MRP, Protocol.DMAP, Protocol.AirPlay]
         for protocol in protocols:
             if _needs_pairing(protocol):
                 return protocol

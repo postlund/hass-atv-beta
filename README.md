@@ -39,6 +39,14 @@ Other limitations as follows:
 
 ### Changes
 
+#### pyatv 0.4.0a11
+
+Support for unicast scanning. If you have problems finding your device, enter its
+IP-address (instead of name or identifier) and it should work better.
+
+Minor bug fixes and code improvements. Idle state should be reported better now
+instead of paused.
+
 #### pyatv 0.4.0a10
 
 Finally support for artwork!
