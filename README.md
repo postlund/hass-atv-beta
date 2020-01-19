@@ -39,6 +39,43 @@ Other limitations as follows:
 
 ### Changes
 
+#### pyatv 0.4.0a12
+
+This release comes with some additional polish in the config flow. An additional
+scan is done before the first dialog is shown, so you will get a list of available
+devices immediately.
+
+Initial support for reconfiguring a device in case credentials are invalid. This
+should never happen, but if authentication fails it will now be possible to pair
+again without having to remove and add the integration. Not all cases are caught
+yet, so it is not perfect. Will improve this in the next release. A persistent
+notification is shown if this happens. To try it out, open `.store/core.config_entries`
+and modify for instance MRP credentials to be incorrect and restart Home Assistant.
+
+Exponential backoff is used when reconnecting with an upper limit of 10 minutes.
+This will make sure that Home Assistant doesn't hammer too much.
+
+It is now possible to setup a device via yaml (experimental as well):
+
+```yaml
+apple_tv:
+  - host: 10.0.0.1
+    identifier: <id>
+    name: Living Room
+    protocol: MRP
+    credentials:
+      mrp: <creds>
+      airplay: <creds>
+      dmap: <creds>
+```
+
+This will create a config entry, unless it doesn't already exist (in case nothing
+happens).
+
+Should also fix this error:
+
+    RuntimeError: Session is closed
+
 #### pyatv 0.4.0a11
 
 Support for unicast scanning. If you have problems finding your device, enter its
