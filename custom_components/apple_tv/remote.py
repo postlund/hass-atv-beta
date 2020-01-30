@@ -100,8 +100,9 @@ class AppleTVRemote(remote.RemoteDevice):
         # Send commands in specified order but schedule only one coroutine
         async def _send_commands():
             if not self.is_on:
-                _LOGGER.error("Unable to send commands, not connected to %s",
-                              self._name)
+                _LOGGER.error(
+                    "Unable to send commands, not connected to %s", self._name
+                )
                 return
 
             for single_command in command:
