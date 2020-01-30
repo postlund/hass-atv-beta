@@ -144,7 +144,7 @@ class AppleTVManager:
         self.listeners = []
         self.message = None
         self.atv = None
-        self._is_on = config_entry.options.get(CONF_START_OFF, True)
+        self._is_on = not config_entry.options.get(CONF_START_OFF, False)
         self._connection_attempts = 0
         self._connection_was_lost = False
         self._task = None
@@ -179,6 +179,8 @@ class AppleTVManager:
         self._is_on = False
         try:
             if self.atv:
+                self.atv.push_updater.listener = None
+                self.atv.push_updater.stop()
                 await self.atv.close()
                 self.atv = None
             if self._task:

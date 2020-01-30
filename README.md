@@ -35,9 +35,21 @@ Other limitations as follows:
 
 * This component will completely override the builtin component!
 
-* Using YAML is not supported now, but will be added in the future.
-
 ### Changes
+
+#### pyatv 0.4.0a13
+
+This release squashes a few metadata bugs (e.g. wrong device state and position).
+Artwork is cached (by pyatv) and artwork_id is used to minimize the amount of times
+artwork is requested. This should put less strain on Home Assistant.
+
+Previously AirPlay was handled as a special case by `pyatv`, as an implicit service
+would be created if one wasn't provided. This would break the integration in case
+AirPlay was disabled on device as pairing would still be requested but not possible
+to complete. No request will be made now if AirPlay is not available now.
+
+Also some minor improvement and fixes to config flow. One being that an empty
+"abort" dialog would be shown due to missing translation.
 
 #### pyatv 0.4.0a12
 
@@ -167,6 +179,7 @@ logs. It is really hard to debug without them. You enable them like this:
 logger:
   logs:
     pyatv: debug
+    custom_components.apple_tv: debug
 ```
 
 ## Finally...

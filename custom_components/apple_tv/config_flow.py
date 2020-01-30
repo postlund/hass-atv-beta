@@ -223,10 +223,8 @@ class AppleTVConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             self.pairing = await pair(
                 self.atv, self.protocol, self.hass.loop, session=session)
             await self.pairing.begin()
-        except OSError:  # Could not connect to service (ignore it)
+        except exceptions.ConnectionFailedError:
             return await self.async_step_service_problem()
-        except asyncio.TimeoutError:
-            abort_reason = "timeout"
         except exceptions.BackOffError:
             abort_reason = "backoff"
         except exceptions.PairingError:

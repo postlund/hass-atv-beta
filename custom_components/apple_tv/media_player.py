@@ -182,14 +182,14 @@ class AppleTvDevice(MediaPlayerDevice):
 
     async def async_play_media(self, media_type, media_id, **kwargs):
         """Send the play_media command to the media player."""
-        await self.atv.airplay.play_url(media_id)
+        await self.atv.stream.play_url(media_id)
 
     @property
     def media_image_hash(self):
         """Hash value for media image."""
         state = self.state
         if self._playing and state not in [STATE_OFF, STATE_IDLE]:
-            return self._playing.hash
+            return self.atv.metadata.artwork_id
 
     async def async_get_media_image(self):
         """Fetch media image of current playing image."""
