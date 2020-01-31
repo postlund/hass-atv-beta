@@ -79,36 +79,24 @@ class AppleTVRemote(remote.RemoteDevice):
         return False
 
     async def async_turn_on(self, **kwargs):
-        """Turn the device on.
-
-        This method is a coroutine.
-        """
+        """Turn the device on."""
         await self._manager.connect()
 
     async def async_turn_off(self, **kwargs):
-        """Turn the device off.
-
-        This method is a coroutine.
-        """
+        """Turn the device off."""
         await self._manager.disconnect()
 
-    def async_send_command(self, command, **kwargs):
-        """Send a command to one device.
-
-        This method must be run in the event loop and returns a coroutine.
-        """
+    async def async_send_command(self, command, **kwargs):
+        """Send a command to one device."""
         # Send commands in specified order but schedule only one coroutine
-        async def _send_commands():
-            if not self.is_on:
-                _LOGGER.error(
-                    "Unable to send commands, not connected to %s", self._name
-                )
-                return
+        if not self.is_on:
+            _LOGGER.error(
+                "Unable to send commands, not connected to %s", self._name
+            )
+            return
 
-            for single_command in command:
-                if not hasattr(self.atv.remote_control, single_command):
-                    continue
+        for single_command in command:
+            if not hasattr(self.atv.remote_control, single_command):
+                continue
 
-                await getattr(self.atv.remote_control, single_command)()
-
-        return _send_commands()
+            await getattr(self.atv.remote_control, single_command)()
