@@ -1,7 +1,7 @@
 # Apple TV Beta Component
 
 **TL;DR** If you try this component, read the changelog below to know what has
-changed and what to test!
+changed and what to test! Instructions on how to enable debug logs are at the end.
 
 In tvOS 13, Apple dropped their old legacy protocols inherited from iTunes
 (DAAP/DACP/DMAP) and now rely fully on their new protocol, Media Remote Protocol.
@@ -35,9 +35,88 @@ Other limitations as follows:
 
 * This component will completely override the builtin component!
 
-* Using YAML is not supported now, but will be added in the future.
-
 ### Changes
+
+#### pyatv 0.4.0a14
+
+More improvements to config flow, mainly clearer instructions. Only devices that haven't
+already been added to Home Assistant will be shown in the initial dialog. IP-address of
+the first found device will be pre-filled to speed up the process.
+
+A lot of improvements have also been made to logging. Some additional log points have
+been added to simplify debugging. Log lines are also cropped to not flood the log file.
+
+This error has been fixed (introduced in Home Assistant 0.105.0):
+
+```
+2020-02-10 16:11:56 ERROR (MainThread) [homeassistant.helpers.service] Service XXX for YYY
+incorrectly returns a coroutine object. Await result instead in service handler. Report bug
+to integration author.
+```
+
+Lots of tests have been added for the config flow, which revealed a few bugs (mainly
+related to DMAP pairing) which has been fixed.
+
+Exponential backoff upper limit was lowered to five minutes for faster feedback.
+
+#### pyatv 0.4.0a13
+
+This release squashes a few metadata bugs (e.g. wrong device state and position).
+Artwork is cached (by pyatv) and artwork_id is used to minimize the amount of times
+artwork is requested. This should put less strain on Home Assistant.
+
+Previously AirPlay was handled as a special case by `pyatv`, as an implicit service
+would be created if one wasn't provided. This would break the integration in case
+AirPlay was disabled on device as pairing would still be requested but not possible
+to complete. No request will be made now if AirPlay is not available now.
+
+Also some minor improvement and fixes to config flow. One being that an empty
+"abort" dialog would be shown due to missing translation.
+
+#### pyatv 0.4.0a12
+
+This release comes with some additional polish in the config flow. An additional
+scan is done before the first dialog is shown, so you will get a list of available
+devices immediately.
+
+Initial support for reconfiguring a device in case credentials are invalid. This
+should never happen, but if authentication fails it will now be possible to pair
+again without having to remove and add the integration. Not all cases are caught
+yet, so it is not perfect. Will improve this in the next release. A persistent
+notification is shown if this happens. To try it out, open `.store/core.config_entries`
+and modify for instance MRP credentials to be incorrect and restart Home Assistant.
+
+Exponential backoff is used when reconnecting with an upper limit of 10 minutes.
+This will make sure that Home Assistant doesn't hammer too much.
+
+It is now possible to setup a device via yaml (experimental as well):
+
+```yaml
+apple_tv:
+  - host: 10.0.0.1
+    identifier: <id>
+    name: Living Room
+    protocol: MRP
+    credentials:
+      mrp: <creds>
+      airplay: <creds>
+      dmap: <creds>
+```
+
+This will create a config entry, unless it doesn't already exist (in case nothing
+happens).
+
+Should also fix this error:
+
+    RuntimeError: Session is closed
+
+#### pyatv 0.4.0a11
+
+Support for unicast scanning. If you have problems finding your device, enter its
+IP-address (instead of name or identifier) and it should work better.
+
+Minor bug fixes and code improvements. Idle state should be reported better now
+instead of paused.
 
 #### pyatv 0.4.0a10
 
@@ -110,8 +189,8 @@ files the old fashined way as well.
 
 Head over to that Integrations page and add an Apple TV from there. You have to
 provide either the name of a device, its IP-address or a unique identifier
-(that you got via `atvremote scan`). If you are unsure about what to enter, just
-type something, press submit and suggestions will be presented for you.
+(that you got via `atvremote scan`). If everything works as expected you should
+see the discovered devices during the initial step.
 
 ## Debug logs
 
@@ -122,6 +201,7 @@ logs. It is really hard to debug without them. You enable them like this:
 logger:
   logs:
     pyatv: debug
+    custom_components.apple_tv: debug
 ```
 
 ## Finally...

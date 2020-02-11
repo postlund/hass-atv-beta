@@ -40,10 +40,12 @@ class AppleTVRemote(remote.RemoteDevice):
 
     @callback
     def device_connected(self):
+        """Handle when connection is made to device."""
         self.atv = self._manager.atv
 
     @callback
     def device_disconnected(self):
+        """Handle when connection was lost to device."""
         self.atv = None
 
     @property
@@ -90,9 +92,7 @@ class AppleTVRemote(remote.RemoteDevice):
         """Send a command to one device."""
         # Send commands in specified order but schedule only one coroutine
         if not self.is_on:
-            _LOGGER.error(
-                "Unable to send commands, not connected to %s", self._name
-            )
+            _LOGGER.error("Unable to send commands, not connected to %s", self._name)
             return
 
         for single_command in command:

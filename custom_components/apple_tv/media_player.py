@@ -20,7 +20,6 @@ from homeassistant.components.media_player.const import (
     SUPPORT_TURN_ON,
 )
 from homeassistant.const import (
-    CONF_HOST,
     CONF_NAME,
     STATE_IDLE,
     STATE_OFF,
@@ -117,7 +116,7 @@ class AppleTvDevice(MediaPlayerDevice):
         """Return the state of the device."""
         if self._manager.is_connecting:
             return STATE_UNKNOWN
-        if not self.atv:
+        if self.atv is None:
             return STATE_OFF
 
         if self._playing:
@@ -128,7 +127,6 @@ class AppleTvDevice(MediaPlayerDevice):
             if state == DeviceState.Playing:
                 return STATE_PLAYING
             if state in (DeviceState.Paused, DeviceState.Seeking, DeviceState.Stopped):
-                # Catch fast forward/backward here so "play" is default action
                 return STATE_PAUSED
             return STATE_STANDBY  # Bad or unknown state?
 
@@ -184,7 +182,7 @@ class AppleTvDevice(MediaPlayerDevice):
     def media_image_hash(self):
         """Hash value for media image."""
         state = self.state
-        if self._playing and state not in [STATE_OFF, STATE_IDLE]:
+        if self._playing and state not in [STATE_UNKNOWN, STATE_OFF, STATE_IDLE]:
             return self.atv.metadata.artwork_id
 
     async def async_get_media_image(self):
