@@ -37,6 +37,13 @@ Other limitations as follows:
 
 ### Changes
 
+#### pyatv 0.4.0a15
+
+Minor bug fixes for MRP device states. Seeking state is also implemented for MRP.
+
+Fixed re-connect bug, missing translation when AirPlay would not pair and invalid logging
+point.
+
 #### pyatv 0.4.0a14
 
 More improvements to config flow, mainly clearer instructions. Only devices that haven't
