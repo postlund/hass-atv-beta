@@ -1,6 +1,5 @@
 """Test config flow."""
 import logging
-from unittest.mock import MagicMock, patch
 
 from pyatv import conf, exceptions, interface
 from pyatv.const import Protocol
@@ -21,6 +20,17 @@ async def test_user_input_device_not_found(flow, mrp_device):
     (await flow().step_user(identifier="none")).gives_form_user(
         description_placeholders={"devices": "`MRP Device (127.0.0.1)`"},
         errors={"base": "device_not_found"},
+    )
+
+
+async def test_user_input_unexpected_error(flow, mock_scan):
+    """Test that unexpected error yields an error message."""
+    (await flow().step_user(has_input=False)).gives_form_user()
+
+    mock_scan.side_effect = Exception
+
+    (await flow().step_user(identifier="dummy")).gives_form_user(
+        errors={"base": "unknown"}
     )
 
 
@@ -110,7 +120,26 @@ async def test_user_adds_device_with_credentials(flow, dmap_device_with_credenti
     )
 
 
-async def test_user_adds_device_by_ip(hass, flow, mock_scan):
+async def test_user_adds_device_with_ip_filter(
+    hass, flow, dmap_device_with_credentials
+):
+    """Test add device filtering by IP."""
+    (await flow().step_user(identifier="127.0.0.1")).gives_form_confirm(
+        description_placeholders={"name": "DMAP Device"}
+    )
+
+    (await flow().step_confirm()).gives_create_entry(
+        {
+            "identifier": "dmap_id",
+            "address": "127.0.0.1",
+            "protocol": Protocol.DMAP.value,
+            "name": "DMAP Device",
+            "credentials": {Protocol.DMAP.value: "dummy_creds",},
+        }
+    )
+
+
+async def test_user_adds_device_by_ip_uses_unicast_scan(hass, flow, mock_scan):
     """Test add device by IP-address, verify unicast scan is used."""
     (await flow().step_user(identifier="127.0.0.1")).gives_form_user()
 
@@ -135,9 +164,7 @@ async def test_user_adds_unusable_device(flow, airplay_device):
 
 async def test_user_connection_failed(flow, mrp_device, pairing_mock):
     """Test error message when connection to device fails."""
-    pairing_mock.begin.side_effect = MagicMock(
-        side_effect=exceptions.ConnectionFailedError()
-    )
+    pairing_mock.begin.side_effect = exceptions.ConnectionFailedError()
 
     (await flow().step_user(identifier="MRP Device")).gives_form_confirm(
         description_placeholders={"name": "MRP Device"}
@@ -152,7 +179,7 @@ async def test_user_connection_failed(flow, mrp_device, pairing_mock):
 
 async def test_user_start_pair_error_failed(flow, mrp_device, pairing_mock):
     """Test initiating pairing fails."""
-    pairing_mock.begin.return_value = mock_coro(exception=exceptions.PairingError())
+    pairing_mock.begin.side_effect = exceptions.PairingError()
 
     (await flow().step_user(identifier="MRP Device")).gives_form_confirm(
         description_placeholders={"name": "MRP Device"}
@@ -164,7 +191,7 @@ async def test_user_start_pair_error_failed(flow, mrp_device, pairing_mock):
 async def test_user_pair_invalid_pin(flow, mrp_device, pairing_mock):
     """Test pairing with invalid pin."""
     pairing_mock.begin.return_value = mock_coro()
-    pairing_mock.finish.return_value = mock_coro(exception=exceptions.PairingError())
+    pairing_mock.finish.side_effect = exceptions.PairingError()
 
     (await flow().step_user(identifier="MRP Device")).gives_form_confirm(
         description_placeholders={"name": "MRP Device"}
@@ -175,6 +202,40 @@ async def test_user_pair_invalid_pin(flow, mrp_device, pairing_mock):
     (await flow().step_pair_with_pin(pin=1111)).gives_form_pair_with_pin(
         errors={"base": "auth"}
     )
+
+
+async def test_user_pair_unexpected_error(flow, mrp_device, pairing_mock):
+    """Test unexpected error when entering PIN code."""
+    pairing_mock.begin.return_value = mock_coro()
+    pairing_mock.finish.side_effect = Exception
+
+    (await flow().step_user(identifier="MRP Device")).gives_form_confirm(
+        description_placeholders={"name": "MRP Device"}
+    )
+
+    (await flow().step_confirm()).gives_form_pair_with_pin()
+
+    (await flow().step_pair_with_pin(pin=1111)).gives_form_pair_with_pin(
+        errors={"base": "unknown"}
+    )
+
+
+async def test_user_pair_backoff_error(flow, mrp_device, pairing_mock):
+    """Test that backoff error is displayed in case device requests it."""
+    pairing_mock.begin.side_effect = exceptions.BackOffError
+
+    (await flow().step_user(identifier="MRP Device")).gives_form_confirm()
+
+    (await flow().step_confirm()).gives_abort(reason="backoff")
+
+
+async def test_user_pair_begin_unexpected_error(flow, mrp_device, pairing_mock):
+    """Test unexpected error during start of pairing."""
+    pairing_mock.begin.side_effect = Exception
+
+    (await flow().step_user(identifier="MRP Device")).gives_form_confirm()
+
+    (await flow().step_confirm()).gives_abort(reason="unrecoverable_error")
 
 
 ### IMPORT DEVICE
@@ -278,6 +339,47 @@ async def test_zeroconf_add_existing_aborts(flow, dmap_device):
 
     (await flow().init_zeroconf(**service_info)).gives_form_confirm()
     (await flow().init_zeroconf(**service_info)).gives_abort("already_configured")
+
+
+async def test_zeroconf_add_but_device_not_found(flow, mock_scan):
+    """Test add device which is not found with another scan."""
+    service_info = {
+        "type": "_touch-able._tcp.local.",
+        "name": "dmap_id.something",
+        "properties": {"CtlN": "Apple TV",},
+    }
+
+    (await flow().step_zeroconf(**service_info)).gives_abort(reason="device_not_found")
+
+
+async def test_zeroconf_add_existing_device(hass, flow, dmap_device):
+    """Test add already existing device from zeroconf."""
+    service_info = {
+        "type": "_touch-able._tcp.local.",
+        "name": "dmap_id.something",
+        "properties": {"CtlN": "Apple TV",},
+    }
+
+    MockConfigEntry(domain="apple_tv", data={"identifier": "dmap_id"}).add_to_hass(hass)
+
+    (await flow().step_zeroconf(**service_info)).gives_abort(
+        reason="already_configured"
+    )
+
+
+async def test_zeroconf_unexpected_error(flow, mock_scan):
+    """Test unexpected error aborts in zeroconf."""
+    service_info = {
+        "type": "_touch-able._tcp.local.",
+        "name": "dmap_id.something",
+        "properties": {"CtlN": "Apple TV",},
+    }
+
+    mock_scan.side_effect = Exception
+
+    (await flow().step_zeroconf(**service_info)).gives_abort(
+        reason="unrecoverable_error"
+    )
 
 
 ### Reconfiguration

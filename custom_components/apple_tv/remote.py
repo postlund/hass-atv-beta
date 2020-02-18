@@ -24,6 +24,14 @@ async def async_setup_platform(hass, config, async_add_entities, discovery_info=
     async_add_entities([AppleTVRemote(name, identifier, manager)])
 
 
+async def async_setup_entry(hass, config_entry, async_add_entities):
+    """Load Apple TV remote based on a config entry."""
+    identifier = config_entry.data[CONF_IDENTIFIER]
+    name = config_entry.data[CONF_NAME]
+    manager = hass.data[DOMAIN][identifier]
+    async_add_entities([AppleTVRemote(name, identifier, manager)])
+
+
 class AppleTVRemote(remote.RemoteDevice):
     """Device that sends commands to an Apple TV."""
 
@@ -90,7 +98,6 @@ class AppleTVRemote(remote.RemoteDevice):
 
     async def async_send_command(self, command, **kwargs):
         """Send a command to one device."""
-        # Send commands in specified order but schedule only one coroutine
         if not self.is_on:
             _LOGGER.error("Unable to send commands, not connected to %s", self._name)
             return

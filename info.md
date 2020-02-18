@@ -37,6 +37,12 @@ Other limitations as follows:
 
 ### Changes
 
+### pyatv 0.4.0a16
+
+Fixes incorrect position for MRP. Otherwise mostly minor translation updates and code clean ups.
+
+**This will be the base version used for inclusion in Home Assistant.**
+
 #### pyatv 0.4.0a15
 
 Minor bug fixes for MRP device states. Seeking state is also implemented for MRP.
