@@ -1,12 +1,11 @@
 """Fixtures for component."""
 
-import pytest
 from unittest.mock import MagicMock, patch
 
-from pyatv import conf
+import pytest
 
 from homeassistant.components.apple_tv import config_flow
-
+from pyatv import conf
 from tests.common import MockConfigEntry, mock_coro
 
 from .common import FlowInteraction, MockPairingHandler, create_conf

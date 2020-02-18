@@ -1,28 +1,22 @@
 """Config flow for Apple TV integration."""
 import asyncio
 import logging
-from random import randrange
 from ipaddress import ip_address
-
-from pyatv import pair, scan, conf, const, convert, exceptions
+from random import randrange
 
 import voluptuous as vol
 
-from homeassistant import core, config_entries
+from homeassistant import config_entries, core
+from homeassistant.const import (CONF_ADDRESS, CONF_NAME, CONF_PIN,
+                                 CONF_PROTOCOL, CONF_TYPE)
 from homeassistant.core import callback
-from homeassistant.const import CONF_PIN, CONF_NAME, CONF_HOST, CONF_PROTOCOL, CONF_TYPE
-from homeassistant.exceptions import HomeAssistantError, HomeAssistantError
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
-from .const import (
-    DOMAIN,
-    CONF_ADDRESS,
-    CONF_IDENTIFIER,
-    CONF_CREDENTIALS,
-    CONF_START_OFF,
-    CONF_CREDENTIALS_MRP,
-    CONF_CREDENTIALS_DMAP,
-    CONF_CREDENTIALS_AIRPLAY,
-)
+from pyatv import conf, const, convert, exceptions, pair, scan
+
+from .const import (CONF_CREDENTIALS, CONF_CREDENTIALS_AIRPLAY,
+                    CONF_CREDENTIALS_DMAP, CONF_CREDENTIALS_MRP,
+                    CONF_IDENTIFIER, CONF_START_OFF, DOMAIN)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -169,7 +163,7 @@ class AppleTVConfigFlow(config_entries.ConfigFlow):
             name = properties["CtlN"]
         elif service_type == "_appletv-v2._tcp.local.":
             self.identifier = discovery_info["name"].split(".")[0]
-            name = "{0} (Home Sharing)".format(properties["Name"])
+            name = properties["Name"] + " (Home Sharing)"
         else:
             return self.async_abort(reason="unrecoverable_error")
 
@@ -343,7 +337,7 @@ class AppleTVConfigFlow(config_entries.ConfigFlow):
             const.Protocol[info.get(CONF_PROTOCOL)],
             info.get(CONF_NAME),
             creds,
-            info.get(CONF_HOST),
+            info.get(CONF_ADDRESS),
             is_import=True,
         )
 
@@ -384,7 +378,7 @@ class AppleTVConfigFlow(config_entries.ConfigFlow):
     def _devices_str(self):
         return ", ".join(
             [
-                "`{0} ({1})`".format(x.name, x.address)
+                f"`{x.name} ({x.address})`"
                 for x in self.scan_result
                 if not self._is_already_configured(x.identifier)
             ]

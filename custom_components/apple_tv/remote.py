@@ -2,11 +2,11 @@
 
 import logging
 
-from homeassistant.core import callback
-from homeassistant.const import CONF_NAME
 from homeassistant.components import remote
+from homeassistant.const import CONF_NAME
+from homeassistant.core import callback
 
-from .const import DOMAIN, CONF_IDENTIFIER
+from .const import CONF_IDENTIFIER, DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 

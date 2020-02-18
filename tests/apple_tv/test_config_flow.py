@@ -3,10 +3,7 @@ import logging
 
 from pyatv import conf, exceptions, interface
 from pyatv.const import Protocol
-
-
 from tests.common import MockConfigEntry, mock_coro
-
 
 ### USER FLOWS
 
@@ -245,7 +242,7 @@ async def test_import_mrp_device(flow, mrp_device):
     """Test importing MRP device from YAML."""
     config = {
         "identifier": "mrp_id",
-        "host": "127.0.0.1",
+        "address": "127.0.0.1",
         "name": "Kitchen",
         "protocol": "MRP",
         "credentials": {"mrp": "mrp_creds"},

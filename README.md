@@ -37,6 +37,14 @@ Other limitations as follows:
 
 ### Changes
 
+### pyatv 0.4.0a16 update 2
+
+Fix this bug introduced in last release:
+
+`NameError: name 'discovery' is not defined`
+
+Contains cosmetic changs after following the Home Assistant checklist.
+
 ### pyatv 0.4.0a16
 
 Fixes incorrect position for MRP. Otherwise mostly minor translation updates and code clean ups.
@@ -106,7 +114,7 @@ It is now possible to setup a device via yaml (experimental as well):
 
 ```yaml
 apple_tv:
-  - host: 10.0.0.1
+  - address: 10.0.0.1
     identifier: <id>
     name: Living Room
     protocol: MRP
