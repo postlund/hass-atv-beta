@@ -51,6 +51,16 @@ Fixes incorrect position for MRP. Otherwise mostly minor translation updates and
 
 **This will be the base version used for inclusion in Home Assistant.**
 
+#### pyatv 0.4.0
+
+This is the version that will be included in Home Assistant soon. It contains a lot of
+fixes to review comments and also fixes this issue:
+
+  TypeError: 'mappingproxy' object does not support item assignment
+
+which is present in 0.107 and later. Also, config entry unloading works now so integrations
+can be removed properly.
+
 #### pyatv 0.4.0a15
 
 Minor bug fixes for MRP device states. Seeking state is also implemented for MRP.

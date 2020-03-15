@@ -1,7 +1,8 @@
 """Support for Apple TV media player."""
 import logging
 
-import homeassistant.util.dt as dt_util
+from pyatv.const import DeviceState, MediaType
+
 from homeassistant.components.media_player import MediaPlayerDevice
 from homeassistant.components.media_player.const import (
     MEDIA_TYPE_MUSIC,
@@ -27,7 +28,7 @@ from homeassistant.const import (
     STATE_UNKNOWN,
 )
 from homeassistant.core import callback
-from pyatv.const import DeviceState, MediaType
+import homeassistant.util.dt as dt_util
 
 from .const import CONF_IDENTIFIER, DOMAIN
 
@@ -52,7 +53,7 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
     """Load Apple TV media player based on a config entry."""
     identifier = config_entry.data[CONF_IDENTIFIER]
     name = config_entry.data[CONF_NAME]
-    manager = hass.data[DOMAIN][identifier]
+    manager = hass.data[DOMAIN][config_entry.unique_id]
     async_add_entities([AppleTvDevice(name, identifier, manager)])
 
 
@@ -103,7 +104,7 @@ class AppleTvDevice(MediaPlayerDevice):
     @property
     def unique_id(self):
         """Return a unique ID."""
-        return "mp_" + self._identifier
+        return f"mp_{self._identifier}"
 
     @property
     def should_poll(self):
@@ -146,14 +147,11 @@ class AppleTvDevice(MediaPlayerDevice):
     def media_content_type(self):
         """Content type of current playing media."""
         if self._playing:
-
-            media_type = self._playing.media_type
-            if media_type == MediaType.Video:
-                return MEDIA_TYPE_VIDEO
-            if media_type == MediaType.Music:
-                return MEDIA_TYPE_MUSIC
-            if media_type == MediaType.TV:
-                return MEDIA_TYPE_TVSHOW
+            return {
+                MediaType.Video: MEDIA_TYPE_VIDEO,
+                MediaType.Music: MEDIA_TYPE_MUSIC,
+                MediaType.TV: MEDIA_TYPE_TVSHOW,
+            }.get(self._playing.media_type)
 
     @property
     def media_duration(self):
