@@ -1,5 +1,7 @@
 # Apple TV Beta Component
 
+**DO NOt UPGRADE TO LATEST VERSION UNTIL YOU HAVE HOME ASSISTANT CORE 0.107 INSTALLED! INTEGRATION WILL BREAK!**
+
 **TL;DR** If you try this component, read the changelog below to know what has
 changed and what to test! Instructions on how to enable debug logs are at the end.
 
