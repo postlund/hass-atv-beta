@@ -1,6 +1,6 @@
 # Apple TV Beta Component
 
-**DO NOt UPGRADE TO LATEST VERSION UNTIL YOU HAVE HOME ASSISTANT CORE 0.107 INSTALLED! INTEGRATION WILL BREAK!**
+**DO NOT UPGRADE TO LATEST VERSION UNTIL YOU HAVE HOME ASSISTANT CORE 0.107 INSTALLED! INTEGRATION WILL BREAK!**
 
 **TL;DR** If you try this component, read the changelog below to know what has
 changed and what to test! Instructions on how to enable debug logs are at the end.
@@ -38,6 +38,18 @@ Other limitations as follows:
 * This component will completely override the builtin component!
 
 ### Changes
+
+### pyatv 0.5.0
+
+This update fixes:
+
+`MessageToString() got an unexpected keyword argument 'print_unknown_fields' `
+
+You will only get this error if you are using another integration depending on
+protobuf, e.g. tensor flow or esphome.
+
+This is also a major version bump and comes with various under-the-hood improvements,
+see pyatv changelog for details.
 
 ### pyatv 0.4.0a16 update 2
 
