@@ -5,6 +5,8 @@ from functools import partial
 from pyatv import conf, interface
 from pyatv.const import Protocol
 
+from homeassistant.data_entry_flow import AbortFlow
+
 
 class MockPairingHandler(interface.PairingHandler):
     """Mock for PairingHandler in pyatv."""
@@ -72,6 +74,7 @@ class FlowInteraction:
         self.flow = flow
         self.name = None
         self.result = None
+        self.exception = None
 
     def __getattr__(self, attr):
         """Return correct action method dynamically based on name."""
@@ -91,15 +94,19 @@ class FlowInteraction:
             gives_type, gives_name = name.split("_", 1)
             return partial(getattr(self, "_" + gives_type), gives_name)
 
-    async def _init(self, **data):
+    async def _init(self, has_input=True, **user_input):
+        args = {**user_input} if has_input else None
         self.result = await self.flow.hass.config_entries.flow.async_init(
-            "apple_tv", data={**data}, context={"source": self.name}
+            "apple_tv", data=args, context={"source": self.name}
         )
         return self
 
     async def _step(self, has_input=True, **user_input):
         args = {**user_input} if has_input else None
-        self.result = await getattr(self.flow, "async_step_" + self.name)(args)
+        try:
+            self.result = await getattr(self.flow, "async_step_" + self.name)(args)
+        except AbortFlow as ex:
+            self.exception = ex
         return self
 
     def _form(self, step_id, **kwargs):
@@ -108,13 +115,20 @@ class FlowInteraction:
         for key, value in kwargs.items():
             assert self.result[key] == value
 
-    def _create_entry(self, entry):
+    def _create_entry(self, entry, unique_id=None):
         assert self.result["type"] == "create_entry"
         assert self.result["data"] == entry
 
+        if unique_id:
+            print(unique_id, self.flow.unique_id)
+            assert self.flow.unique_id == unique_id
+
     def _abort(self, reason):
-        assert self.result["type"] == "abort"
-        assert self.result["reason"] == reason
+        if self.result:
+            assert self.result["type"] == "abort"
+            assert self.result["reason"] == reason
+        else:
+            assert self.exception.reason, reason
 
 
 def create_conf(name, address, *services):
