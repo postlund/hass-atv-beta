@@ -1,9 +1,9 @@
 """Test config flow."""
 
-from tests.common import MockConfigEntry, mock_coro
-
 from pyatv import exceptions
 from pyatv.const import Protocol
+
+from tests.common import MockConfigEntry, mock_coro
 
 # User Flows
 
@@ -51,7 +51,6 @@ async def test_user_adds_full_device(flow, full_device, pairing):
 
     (await flow().step_pair_with_pin(pin=1234)).gives_create_entry(
         {
-            "identifier": "mrp_id",
             "address": "127.0.0.1",
             "protocol": Protocol.MRP.value,
             "name": "MRP Device",
@@ -60,7 +59,8 @@ async def test_user_adds_full_device(flow, full_device, pairing):
                 Protocol.DMAP.value: "dmap_creds",
                 Protocol.AirPlay.value: "airplay_creds",
             },
-        }
+        },
+        unique_id="mrp_id",
     )
 
 
@@ -76,12 +76,12 @@ async def test_user_adds_dmap_device(flow, dmap_device, dmap_pin, pairing):
 
     (await flow().step_pair_no_pin()).gives_create_entry(
         {
-            "identifier": "dmap_id",
             "address": "127.0.0.1",
             "protocol": Protocol.DMAP.value,
             "name": "DMAP Device",
             "credentials": {Protocol.DMAP.value: "dmap_creds"},
-        }
+        },
+        unique_id="dmap_id",
     )
 
 
@@ -108,12 +108,12 @@ async def test_user_adds_device_with_credentials(flow, dmap_device_with_credenti
 
     (await flow().step_confirm()).gives_create_entry(
         {
-            "identifier": "dmap_id",
             "address": "127.0.0.1",
             "protocol": Protocol.DMAP.value,
             "name": "DMAP Device",
             "credentials": {Protocol.DMAP.value: "dummy_creds"},
-        }
+        },
+        unique_id="dmap_id",
     )
 
 
@@ -127,12 +127,12 @@ async def test_user_adds_device_with_ip_filter(
 
     (await flow().step_confirm()).gives_create_entry(
         {
-            "identifier": "dmap_id",
             "address": "127.0.0.1",
             "protocol": Protocol.DMAP.value,
             "name": "DMAP Device",
             "credentials": {Protocol.DMAP.value: "dummy_creds"},
-        }
+        },
+        unique_id="dmap_id",
     )
 
 
@@ -145,7 +145,7 @@ async def test_user_adds_device_by_ip_uses_unicast_scan(hass, flow, mock_scan):
 
 async def test_user_adds_existing_device(hass, flow, mrp_device):
     """Test that it is not possible to add existing device."""
-    MockConfigEntry(domain="apple_tv", data={"identifier": "mrp_id"}).add_to_hass(hass)
+    MockConfigEntry(domain="apple_tv", unique_id="mrp_id").add_to_hass(hass)
 
     (await flow().step_user(identifier="MRP Device")).gives_form_user(
         errors={"base": "device_already_configured"}
@@ -250,12 +250,12 @@ async def test_import_mrp_device(flow, mrp_device):
 
     (await flow().step_import(**config)).gives_create_entry(
         {
-            "identifier": "mrp_id",
             "address": "127.0.0.1",
             "protocol": Protocol.MRP.value,
             "name": "Kitchen",
             "credentials": {Protocol.MRP.value: "mrp_creds"},
-        }
+        },
+        unique_id="mrp_id",
     )
 
 
@@ -289,12 +289,12 @@ async def test_zeroconf_add_mrp_device(flow, mrp_device, pairing):
 
     (await flow().step_pair_with_pin(pin=1234)).gives_create_entry(
         {
-            "identifier": "mrp_id",
             "address": "127.0.0.1",
             "protocol": Protocol.MRP.value,
             "name": "MRP Device",
             "credentials": {Protocol.MRP.value: "mrp_creds"},
-        }
+        },
+        unique_id="mrp_id",
     )
 
 
@@ -335,7 +335,7 @@ async def test_zeroconf_add_existing_aborts(flow, dmap_device):
     }
 
     (await flow().init_zeroconf(**service_info)).gives_form_confirm()
-    (await flow().init_zeroconf(**service_info)).gives_abort("already_configured")
+    (await flow().init_zeroconf(**service_info)).gives_abort("already_in_progress")
 
 
 async def test_zeroconf_add_but_device_not_found(flow, mock_scan):
@@ -357,7 +357,7 @@ async def test_zeroconf_add_existing_device(hass, flow, dmap_device):
         "properties": {"CtlN": "Apple TV"},
     }
 
-    MockConfigEntry(domain="apple_tv", data={"identifier": "dmap_id"}).add_to_hass(hass)
+    MockConfigEntry(domain="apple_tv", unique_id="dmap_id").add_to_hass(hass)
 
     (await flow().step_zeroconf(**service_info)).gives_abort(
         reason="already_configured"
@@ -395,7 +395,7 @@ async def test_reconfigure_ongoing_aborts(hass, flow, mrp_device):
 
 async def test_reconfigure_update_credentials(hass, flow, mrp_device, pairing):
     """Test that reconfigure flow updates config entry."""
-    config_entry = MockConfigEntry(domain="apple_tv", data={"identifier": "mrp_id"})
+    config_entry = MockConfigEntry(domain="apple_tv", unique_id="mrp_id")
     config_entry.add_to_hass(hass)
 
     (
@@ -406,10 +406,9 @@ async def test_reconfigure_update_credentials(hass, flow, mrp_device, pairing):
         description_placeholders={"protocol": "MRP"}
     )
 
-    (await flow().step_pair_with_pin(pin=1234)).gives_abort("updated_configuration")
+    (await flow().step_pair_with_pin(pin=1234)).gives_abort("already_configured")
 
     assert config_entry.data == {
-        "identifier": "mrp_id",
         "address": "127.0.0.1",
         "protocol": Protocol.MRP.value,
         "name": "MRP Device",
@@ -422,4 +421,5 @@ async def test_reconfigure_update_credentials(hass, flow, mrp_device, pairing):
 
 async def test_option_start_off(options):
     """Test start off-option flag."""
+    (await options().step_init(has_input=False)).gives_form_init()
     (await options().step_init(start_off=True)).gives_create_entry({"start_off": True})
