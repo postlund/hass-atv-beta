@@ -25,6 +25,7 @@ from .const import (  # pylint: disable=unused-import
     CONF_CREDENTIALS_MRP,
     CONF_IDENTIFIER,
     CONF_START_OFF,
+    CONF_PWR_MGMT,
     DOMAIN,
 )
 
@@ -33,6 +34,7 @@ _LOGGER = logging.getLogger(__name__)
 INPUT_PIN_SCHEMA = vol.Schema({vol.Required(CONF_PIN, default=None): int})
 
 DEFAULT_START_OFF = False
+DEFAULT_PWR_MGMT = False
 PROTOCOL_PRIORITY = [const.Protocol.MRP, const.Protocol.DMAP, const.Protocol.AirPlay]
 
 # Mapping between config entry format and pyatv
@@ -431,13 +433,19 @@ class AppleTVOptionsFlow(config_entries.OptionsFlow):
             return self.async_create_entry(title="", data=self.options)
 
         return self.async_show_form(
-            step_id="device_options",
+            step_id="init",
             data_schema=vol.Schema(
                 {
                     vol.Optional(
                         CONF_START_OFF,
                         default=self.config_entry.options.get(
                             CONF_START_OFF, DEFAULT_START_OFF
+                        ),
+                    ): bool,
+                    vol.Optional(
+                        CONF_PWR_MGMT,
+                        default=self.config_entry.options.get(
+                            CONF_PWR_MGMT, DEFAULT_PWR_MGMT
                         ),
                     ): bool,
                 }

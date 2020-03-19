@@ -214,8 +214,10 @@ class AppleTvDevice(MediaPlayerDevice):
 
     async def async_turn_off(self):
         """Turn the media player off."""
-        self._playing = None
-        await self._manager.disconnect()
+        if self._manager._is_pwr_mgmt_on:
+            await self._manager.softdisconnect()
+        else:
+            await self._manager.disconnect()
 
     async def async_media_play_pause(self):
         """Pause media on media player."""
