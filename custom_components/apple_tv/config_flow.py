@@ -430,6 +430,7 @@ class AppleTVOptionsFlow(config_entries.OptionsFlow):
         """Manage the Apple TV options."""
         if user_input is not None:
             self.options[CONF_START_OFF] = user_input[CONF_START_OFF]
+            self.options[CONF_PWR_MGMT] = user_input[CONF_PWR_MGMT]
             return self.async_create_entry(title="", data=self.options)
 
         return self.async_show_form(

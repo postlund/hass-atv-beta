@@ -181,8 +181,19 @@ class AppleTVManager:
 
     async def connect(self):
         """Connect to device."""
-        self._is_on = True
-        self._start_connect_loop()
+        if self._is_pwr_mgmt_on and self._is_already_connected:
+            _LOGGER.debug("Turning the device on")
+            await self.atv.power.turn_on()
+            self._update_state(connected=True)
+        else:
+            self._is_on = True
+            self._start_connect_loop()
+
+    async def softdisconnect(self):
+        """Turn off device."""
+        _LOGGER.debug("Turning the device off")
+        await self.atv.power.turn_off()
+        self._update_state(disconnected=True)
 
     async def disconnect(self):
         """Disconnect from device."""
