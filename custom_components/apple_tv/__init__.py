@@ -114,7 +114,7 @@ async def async_setup_entry(hass, entry):
     @callback
     def on_hass_stop(event):
         """Stop push updates when hass stops."""
-        asyncio.ensure_future(manager.disconnect(), loop=hass.loop)
+        asyncio.ensure_future(manager.close_connection(), loop=hass.loop)
 
     hass.bus.async_listen_once(EVENT_HOMEASSISTANT_STOP, on_hass_stop)
 
@@ -129,7 +129,7 @@ async def async_setup_entry(hass, entry):
 async def async_unload_entry(hass, entry):
     """Unload an Apple TV config entry."""
     manager = hass.data[DOMAIN].pop(entry.unique_id)
-    await manager.disconnect()
+    await manager.close_connection()
 
     for domain in SUPPORTED_PLATFORMS:
         await hass.config_entries.async_forward_entry_unload(entry, domain)
@@ -188,13 +188,16 @@ class AppleTVManager:
             self._is_on = True
             self._start_connect_loop()
 
-    async def softdisconnect(self):
-        """Turn off device."""
-        _LOGGER.debug("Turning the device off")
-        await self.atv.power.turn_off()
-        self._update_state(disconnected=True)
-
     async def disconnect(self):
+        """Turn off device."""
+        if self._is_pwr_mgmt_on:
+            _LOGGER.debug("Turning the device off")
+            await self.atv.power.turn_off()
+            self._update_state(disconnected=True)
+        else:
+            await self.close_connection()
+
+    async def close_connection(self):
         """Disconnect from device."""
         _LOGGER.debug("Disconnecting from device")
         self._is_on = False
@@ -268,7 +271,7 @@ class AppleTVManager:
 
         # Add to event queue as this function is called from a task being
         # cancelled from disconnect
-        asyncio.ensure_future(self.disconnect())
+        asyncio.ensure_future(self.close_connection())
 
         self.hass.async_create_task(
             self.hass.config_entries.flow.async_init(

@@ -83,10 +83,7 @@ class AppleTVRemote(remote.RemoteDevice):
 
     async def async_turn_off(self, **kwargs):
         """Turn the device off."""
-        if self._manager._is_pwr_mgmt_on:
-            await self._manager.softdisconnect()
-        else:
-            await self._manager.disconnect()
+        await self._manager.disconnect()
 
     async def async_send_command(self, command, **kwargs):
         """Send a command to one device."""
