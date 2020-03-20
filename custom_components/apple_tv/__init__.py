@@ -154,7 +154,6 @@ class AppleTVManager:
         self.atv = None
         self._is_on = not config_entry.options.get(CONF_START_OFF, False)
         self._is_pwr_mgmt_on = config_entry.options.get(CONF_PWR_MGMT, False)
-        self._is_already_connected = False
         self._connection_attempts = 0
         self._connection_was_lost = False
         self._task = None
@@ -181,7 +180,7 @@ class AppleTVManager:
 
     async def connect(self):
         """Connect to device."""
-        if self._is_pwr_mgmt_on and self._is_already_connected:
+        if self._is_pwr_mgmt_on and self.atv:
             _LOGGER.debug("Turning the device on")
             await self.atv.power.turn_on()
             self._update_state(connected=True)
@@ -323,9 +322,8 @@ class AppleTVManager:
         self.address_updated(str(conf.address))
 
         if self._is_pwr_mgmt_on:
-            self._is_already_connected = True
             self.atv.power.listener = PowerListener(self)
-            if self.atv.power.power_state == PowerState.On or self.atv.power.power_state == PowerState.Unknown:
+            if self.atv.power.power_state in [PowerState.On, PowerState.Unknown]:
                 self._update_state(connected=True)
             else:
                 self._update_state(disconnected=True)
@@ -373,7 +371,7 @@ class PowerListener:
         self._manager = manager
 
     def powerstate_update(self, old_state, new_state):
-        if new_state == PowerState.On or new_state == PowerState.Unknown:
+        if new_state in [PowerState.On, PowerState.Unknown]:
             self._manager._update_state(connected=True)
         else:
             self._manager._update_state(disconnected=True)
