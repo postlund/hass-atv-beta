@@ -120,7 +120,6 @@ class FlowInteraction:
         assert self.result["data"] == entry
 
         if unique_id:
-            print(unique_id, self.flow.unique_id)
             assert self.flow.unique_id == unique_id
 
     def _abort(self, reason):

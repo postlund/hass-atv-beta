@@ -20,15 +20,15 @@ from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .const import (
+    CONF_CREDENTIALS,
     CONF_CREDENTIALS_AIRPLAY,
     CONF_CREDENTIALS_DMAP,
     CONF_CREDENTIALS_MRP,
     CONF_IDENTIFIER,
     CONF_START_OFF,
     CONF_PWR_MGMT,
-    DOMAIN,
 )
-from .const import CONF_CREDENTIALS  # pylint: disable=unused-import
+from .const import DOMAIN  # pylint: disable=unused-import
 
 _LOGGER = logging.getLogger(__name__)
 
