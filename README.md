@@ -1,6 +1,6 @@
 # Apple TV Beta Component
 
-**DO NOT UPGRADE TO LATEST VERSION UNTIL YOU HAVE HOME ASSISTANT CORE 0.107 INSTALLED! INTEGRATION WILL BREAK!**
+**THIS UPDATE REQUIRES HOME ASSISTANT 0.107 OR LATER AND YOU NEED TO REMOVE AND RE-PAIR YOUR INTEGRATIONS DUE TO CHANGES IN ID MANAGEMENT (LAST TIME, I PROMISE)!**
 
 **TL;DR** If you try this component, read the changelog below to know what has
 changed and what to test! Instructions on how to enable debug logs are at the end.
@@ -38,6 +38,19 @@ Other limitations as follows:
 * This component will completely override the builtin component!
 
 ### Changes
+
+## pyatv 0.5.0 update 2
+
+This updates fixes some review comments regarding usage of `unique_id` in config entries.
+A side-effect of this is that that I had to change the config entry format, so you yet
+again have to remove and re-pair your devices. This is my bad as I didn't really understand
+the concept at first (but I do now), so I didn't think it would have any impact.
+
+Also, the option flow (used to enable "start off" mode) broke some time ago and that has
+been fixed. The test for this has been improved so this won't happen again.
+
+I hope this should also fix a few problems when the integration fails to re-establish a
+connection and potentially mix up devices (also related to `unique_id`).
 
 ### pyatv 0.5.0
 
