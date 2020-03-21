@@ -157,6 +157,7 @@ class AppleTVManager:
         self._connection_attempts = 0
         self._connection_was_lost = False
         self._task = None
+        self.config_entry.add_update_listener(self.async_options_updated)
 
     async def init(self):
         """Initialize power management."""
@@ -363,6 +364,12 @@ class AppleTVManager:
             data={**self.config_entry.data, CONF_ADDRESS: address},
         )
         self.hass.add_job(update_entry, self.config_entry)
+
+    @staticmethod
+    async def async_options_updated(hass, config_entry):
+        """Triggered by config entry options updates."""
+        #self._is_pwr_mgmt_on = config_entry.options.get(CONF_PWR_MGMT, False)
+        new_pwr_mgmt_status = config_entry.options.get(CONF_PWR_MGMT, False)
 
 
 class PowerListener:
