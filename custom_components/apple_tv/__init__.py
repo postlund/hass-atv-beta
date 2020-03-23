@@ -181,10 +181,11 @@ class AppleTVManager:
 
     async def connect(self):
         """Connect to device."""
-        if self._is_pwr_mgmt_on and self.atv:
-            _LOGGER.debug("Turning the device on")
-            await self.atv.power.turn_on()
+        if self.atv:
             self._update_state(connected=True)
+            if self._is_pwr_mgmt_on:
+                _LOGGER.debug("Turning the device on")
+                await self.atv.power.turn_on()
         else:
             self._is_on = True
             self._start_connect_loop()
@@ -366,10 +367,16 @@ class AppleTVManager:
         self.hass.add_job(update_entry, self.config_entry)
 
     @staticmethod
-    async def async_options_updated(hass, config_entry):
+    async def async_options_updated(hass, entry):
         """Triggered by config entry options updates."""
-        #self._is_pwr_mgmt_on = config_entry.options.get(CONF_PWR_MGMT, False)
-        new_pwr_mgmt_status = config_entry.options.get(CONF_PWR_MGMT, False)
+        hass.data[DOMAIN][entry.unique_id]._is_pwr_mgmt_on = entry.options[CONF_PWR_MGMT]
+        if entry.options[CONF_PWR_MGMT] and hass.data[DOMAIN][entry.unique_id].atv:
+            if hass.data[DOMAIN][entry.unique_id].atv.power.power_state in [PowerState.On, PowerState.Unknown]:
+                hass.data[DOMAIN][entry.unique_id]._update_state(connected=True)
+            else:
+                hass.data[DOMAIN][entry.unique_id]._update_state(disconnected=True)
+        else:
+            await hass.data[DOMAIN][entry.unique_id].connect()
 
 
 class PowerListener:
