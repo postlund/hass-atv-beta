@@ -39,6 +39,10 @@ Other limitations as follows:
 
 ### Changes
 
+## pyatv 0.5.0 update 3
+
+Only a few new debug logs were added to aid troubleshooting.
+
 ## pyatv 0.5.0 update 2
 
 This updates fixes some review comments regarding usage of `unique_id` in config entries.
