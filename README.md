@@ -39,6 +39,11 @@ Other limitations as follows:
 
 ### Changes
 
+## pyatv 0.5.0 update 4
+
+Make removal of integration work. Previously the media_player entity would be a leftover
+until next restart of Home Assistant.
+
 ## pyatv 0.5.0 update 3
 
 Only a few new debug logs were added to aid troubleshooting.
