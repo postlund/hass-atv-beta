@@ -184,12 +184,15 @@ class AppleTvDevice(MediaPlayerDevice):
     def media_image_hash(self):
         """Hash value for media image."""
         state = self.state
+        artwork_hash = None if self._playing is None else self.atv.metadata.artwork_id
+        _LOGGER.error("ARTWORK HASH: %s (state: %s)", artwork_hash, state)
         if self._playing and state not in [STATE_UNKNOWN, STATE_OFF, STATE_IDLE]:
             return self.atv.metadata.artwork_id
 
     async def async_get_media_image(self):
         """Fetch media image of current playing image."""
         state = self.state
+        _LOGGER.error("GET ARTWORK IN STATE: %s", state)
         if self._playing and state not in [STATE_OFF, STATE_IDLE]:
             artwork = await self.atv.metadata.artwork()
             if artwork:
