@@ -252,6 +252,13 @@ I recommend that you install [HACS](https://hacs.xyz/) and add this repository
 to it. That way you get updates automatically. But you can just copy and add
 files the old fashined way as well.
 
+1. When inside of HACS, go to the "Settings" tab and then you'll see an 
+"Add Custom Repository" field at the bottom of that page.
+2. Paste in the following URL: https://github.com/postlund/hass-atv-beta and select
+Integration" from the Category dropdown and hit the save button.
+3. Install it through HACS, this will require a restart of Home Assistant to fully install
+After this is done, you can set it up via Home Assistant Configuration -> Integrations page.
+
 ## Setting up
 
 Head over to that Integrations page and add an Apple TV from there. You have to
