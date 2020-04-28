@@ -1,7 +1,5 @@
 # Apple TV Beta Component
 
-**THIS UPDATE REQUIRES HOME ASSISTANT 0.107 OR LATER AND YOU NEED TO REMOVE AND RE-PAIR YOUR INTEGRATIONS DUE TO CHANGES IN ID MANAGEMENT (LAST TIME, I PROMISE)!**
-
 **TL;DR** If you try this component, read the changelog below to know what has
 changed and what to test! Instructions on how to enable debug logs are at the end.
 
@@ -38,6 +36,22 @@ Other limitations as follows:
 * This component will completely override the builtin component!
 
 ### Changes
+
+## pyatv 0.6.0
+
+Here comes a few new features:
+
+* Only one Apple TV device is set up in the device registry and it is populated with
+  correct device model and OS version (if that could be determined)
+* Genre, artist and album attributes will be present if available
+* Application name and identifier of active app is now supported
+* Some timeouts have been increased as well some mechanisms added to wake sleeping devices,
+  which should make scanning and re-connections work better
+
+The application name is not always present (identifier is though) and it is a known issue.
+For some reason the application name is not always sent by the Apple TV, so some kind of
+workaround to deal with this must figured out. **You do not need to write any issues
+about this.**
 
 ## pyatv 0.5.0 update 4
 
