@@ -37,6 +37,15 @@ Other limitations as follows:
 
 ### Changes
 
+## pyatv 0.6.1
+
+Fixes this issue:
+
+    AttributeError: 'EnumTypeWrapper' object has no attribute 'NoError'
+
+This happens because some integrations restrict protobuf to a very old version that
+pyatv seemed to have lost compatibility with (which is now fixed).
+
 ## pyatv 0.6.0
 
 Here comes a few new features:

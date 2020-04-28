@@ -37,6 +37,15 @@ Other limitations as follows:
 
 ### Changes
 
+## pyatv 0.6.1
+
+Fixes this issue:
+
+    AttributeError: 'EnumTypeWrapper' object has no attribute 'NoError'
+
+This happens because some integrations restrict protobuf to a very old version that
+pyatv seemed to have lost compatibility with (which is now fixed).
+
 ## pyatv 0.6.0
 
 Here comes a few new features:
@@ -265,6 +274,13 @@ In case of problems, remove the Apple TV entity and re-pair.
 I recommend that you install [HACS](https://hacs.xyz/) and add this repository
 to it. That way you get updates automatically. But you can just copy and add
 files the old fashined way as well.
+
+1. When inside of HACS, go to the "Settings" tab and then you'll see an 
+"Add Custom Repository" field at the bottom of that page.
+2. Paste in the following URL: https://github.com/postlund/hass-atv-beta and select
+Integration" from the Category dropdown and hit the save button.
+3. Install it through HACS, this will require a restart of Home Assistant to fully install
+After this is done, you can set it up via Home Assistant Configuration -> Integrations page.
 
 ## Setting up
 
