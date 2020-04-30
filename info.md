@@ -37,6 +37,11 @@ Other limitations as follows:
 
 ### Changes
 
+## pyatv 0.6.1 update 2
+
+Fix issue with unicast scan (`NonLocalSubnetError`) when Apple TV is on a different
+subnet than Home Assistant. See issue [#628](https://github.com/postlund/pyatv/issues/628).
+
 ## pyatv 0.6.1
 
 Fixes this issue:
