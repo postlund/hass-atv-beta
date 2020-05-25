@@ -58,7 +58,8 @@
       "init": {
         "description": "Configure General Device Settings",
         "data": {
-          "start_off": "Do not turn device on when starting Home Assistant"
+          "start_off": "Do not turn device on when starting Home Assistant",
+          "pwr_mgmt": "Allow to Home Assistant to use power management functionality"
         }
       }
     }
