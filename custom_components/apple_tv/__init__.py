@@ -6,7 +6,7 @@ from random import randrange
 from typing import Sequence, TypeVar, Union
 
 from pyatv import connect, exceptions, scan
-from pyatv.const import Protocol
+from pyatv.const import Protocol, PowerState
 import voluptuous as vol
 
 from homeassistant import config_entries
@@ -30,6 +30,7 @@ from .const import (
     CONF_CREDENTIALS_MRP,
     CONF_IDENTIFIER,
     CONF_START_OFF,
+    CONF_PWR_MGMT,
     DOMAIN,
     PROTOCOL_DMAP,
     PROTOCOL_MRP,
@@ -81,6 +82,7 @@ CONFIG_SCHEMA = vol.Schema(
                         vol.Required(CONF_CREDENTIALS): CREDENTIALS_SCHEMA,
                         vol.Optional(CONF_NAME, default=DEFAULT_NAME): cv.string,
                         vol.Optional(CONF_START_OFF, default=False): cv.boolean,
+                        vol.Optional(CONF_PWR_MGMT, default=False): cv.boolean,
                     }
                 )
             ],
@@ -113,7 +115,7 @@ async def async_setup_entry(hass, entry):
     @callback
     def on_hass_stop(event):
         """Stop push updates when hass stops."""
-        asyncio.ensure_future(manager.disconnect(), loop=hass.loop)
+        asyncio.ensure_future(manager.close_connection(), loop=hass.loop)
 
     hass.bus.async_listen_once(EVENT_HOMEASSISTANT_STOP, on_hass_stop)
 
@@ -128,7 +130,7 @@ async def async_setup_entry(hass, entry):
 async def async_unload_entry(hass, entry):
     """Unload an Apple TV config entry."""
     manager = hass.data[DOMAIN].pop(entry.unique_id)
-    await manager.disconnect()
+    await manager.close_connection()
 
     for domain in SUPPORTED_PLATFORMS:
         await hass.config_entries.async_forward_entry_unload(entry, domain)
@@ -152,9 +154,11 @@ class AppleTVManager:
         self.message = None
         self.atv = None
         self._is_on = not config_entry.options.get(CONF_START_OFF, False)
+        self._is_pwr_mgmt_on = config_entry.options.get(CONF_PWR_MGMT, False)
         self._connection_attempts = 0
         self._connection_was_lost = False
         self._task = None
+        self.config_entry.add_update_listener(self.async_options_updated)
 
     async def init(self):
         """Initialize power management."""
@@ -164,34 +168,44 @@ class AppleTVManager:
     def connection_lost(self, exception):
         """Device was unexpectedly disconnected."""
         _LOGGER.warning('Connection lost to Apple TV "%s"', self.atv.name)
-        if self.atv:
-            self.atv.listener = None
-            self.atv.close()
-            self.atv = None
+        self.atv = None
         self._connection_was_lost = True
         self._update_state(disconnected=True)
         self._start_connect_loop()
 
     def connection_closed(self):
         """Device connection was (intentionally) closed."""
-        if self.atv:
-            self.atv.listener = None
-            self.atv.close()
-            self.atv = None
+        self.atv = None
         self._update_state(disconnected=True)
         self._start_connect_loop()
 
     async def connect(self):
         """Connect to device."""
-        self._is_on = True
-        self._start_connect_loop()
+        if self.atv:
+            self._update_state(connected=True)
+            if self._is_pwr_mgmt_on:
+                _LOGGER.debug("Turning the device on")
+                await self.atv.power.turn_on()
+        else:
+            self._is_on = True
+            self._start_connect_loop()
 
     async def disconnect(self):
+        """Turn off device."""
+        if self._is_pwr_mgmt_on:
+            _LOGGER.debug("Turning the device off")
+            await self.atv.power.turn_off()
+            self._update_state(disconnected=True)
+        else:
+            await self.close_connection()
+
+    async def close_connection(self):
         """Disconnect from device."""
         _LOGGER.debug("Disconnecting from device")
         self._is_on = False
         try:
             if self.atv:
+                self.atv.push_updater.listener = None
                 self.atv.push_updater.stop()
                 self.atv.close()
                 self.atv = None
@@ -259,7 +273,7 @@ class AppleTVManager:
 
         # Add to event queue as this function is called from a task being
         # cancelled from disconnect
-        asyncio.ensure_future(self.disconnect())
+        asyncio.ensure_future(self.close_connection())
 
         self.hass.async_create_task(
             self.hass.config_entries.flow.async_init(
@@ -321,6 +335,14 @@ class AppleTVManager:
         self.address_updated(str(conf.address))
 
         await self._setup_device_registry()
+        
+        if self._is_pwr_mgmt_on:
+            self.power_listener = PowerListener(self)
+            self.atv.power.listener = self.power_listener
+            if self.atv.power.power_state in [PowerState.On, PowerState.Unknown]:
+                self._update_state(connected=True)
+            else:
+                self._update_state(disconnected=True)
 
         self._connection_attempts = 0
         if self._connection_was_lost:
@@ -378,3 +400,32 @@ class AppleTVManager:
             data={**self.config_entry.data, CONF_ADDRESS: address},
         )
         self.hass.add_job(update_entry, self.config_entry)
+
+    @staticmethod
+    async def async_options_updated(hass, entry):
+        """Triggered by config entry options updates."""
+        hass_entry = hass.data[DOMAIN][entry.unique_id]
+        hass_entry._is_pwr_mgmt_on = entry.options[CONF_PWR_MGMT]
+        if entry.options[CONF_PWR_MGMT] and hass_entry.atv:
+            if hass_entry.atv.power.power_state in [PowerState.On, PowerState.Unknown]:
+                hass_entry._update_state(connected=True)
+            else:
+                hass_entry._update_state(disconnected=True)
+        else:
+            await hass_entry.connect()
+
+
+class PowerListener:
+    """Listener interface for power updates."""
+
+    def __init__(self, manager):
+        """Initialize the Apple TV device."""
+        self.atv = None
+        self._manager = manager
+
+    def powerstate_update(self, old_state, new_state):
+        if new_state in [PowerState.On, PowerState.Unknown]:
+            self._manager._update_state(connected=True)
+        else:
+            self._manager._update_state(disconnected=True)
+

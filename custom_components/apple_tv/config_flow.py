@@ -26,6 +26,7 @@ from .const import (
     CONF_CREDENTIALS_MRP,
     CONF_IDENTIFIER,
     CONF_START_OFF,
+    CONF_PWR_MGMT,
 )
 from .const import DOMAIN  # pylint: disable=unused-import
 
@@ -34,6 +35,7 @@ _LOGGER = logging.getLogger(__name__)
 INPUT_PIN_SCHEMA = vol.Schema({vol.Required(CONF_PIN, default=None): int})
 
 DEFAULT_START_OFF = False
+DEFAULT_PWR_MGMT = False
 PROTOCOL_PRIORITY = [const.Protocol.MRP, const.Protocol.DMAP, const.Protocol.AirPlay]
 
 SCAN_TIMEOUT = 5
@@ -420,6 +422,7 @@ class AppleTVOptionsFlow(config_entries.OptionsFlow):
         """Manage the Apple TV options."""
         if user_input is not None:
             self.options[CONF_START_OFF] = user_input[CONF_START_OFF]
+            self.options[CONF_PWR_MGMT] = user_input[CONF_PWR_MGMT]
             return self.async_create_entry(title="", data=self.options)
 
         return self.async_show_form(
@@ -430,6 +433,12 @@ class AppleTVOptionsFlow(config_entries.OptionsFlow):
                         CONF_START_OFF,
                         default=self.config_entry.options.get(
                             CONF_START_OFF, DEFAULT_START_OFF
+                        ),
+                    ): bool,
+                    vol.Optional(
+                        CONF_PWR_MGMT,
+                        default=self.config_entry.options.get(
+                            CONF_PWR_MGMT, DEFAULT_PWR_MGMT
                         ),
                     ): bool,
                 }
