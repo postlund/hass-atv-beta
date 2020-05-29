@@ -337,7 +337,8 @@ class AppleTVManager:
         await self._setup_device_registry()
         
         if self._is_pwr_mgmt_on:
-            self.atv.power.listener = PowerListener(self)
+            self.power_listener = PowerListener(self)
+            self.atv.power.listener = self.power_listener
             if self.atv.power.power_state in [PowerState.On, PowerState.Unknown]:
                 self._update_state(connected=True)
             else:
