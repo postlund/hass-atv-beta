@@ -37,6 +37,11 @@ Other limitations as follows:
 
 ### Changes
 
+## pyatv 0.6.1 update 3
+
+Fix warnings about `MediaPlayerDevice` should be changed to `MediaPlayerEntity`
+(and same `remote`).
+
 ## pyatv 0.6.1 update 2
 
 Fix issue with unicast scan (`NonLocalSubnetError`) when Apple TV is on a different
