@@ -88,8 +88,9 @@ class AppleTvDevice(MediaPlayerEntity):
     @callback
     def device_disconnected(self):
         """Handle when connection was lost to device."""
-        self.atv.push_updater.listener = None
-        self.atv = None
+        if self.atv:
+            self.atv.push_updater.listener = None
+            self.atv = None
 
     @property
     def name(self):
@@ -127,6 +128,8 @@ class AppleTvDevice(MediaPlayerEntity):
         """Return the state of the device."""
         if self._manager.is_connecting:
             return STATE_UNKNOWN
+        if self.atv and self._manager._is_pwr_mgmt_on and not self._playing:
+            return STATE_IDLE
         if self.atv is None:
             return STATE_OFF
 
