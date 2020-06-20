@@ -1,5 +1,7 @@
 # Apple TV Beta Component
 
+**Required version of Home Assistant: >= 0.110.0**
+
 **TL;DR** If you try this component, read the changelog below to know what has
 changed and what to test! Instructions on how to enable debug logs are at the end.
 
@@ -35,7 +37,20 @@ Other limitations as follows:
 
 * This component will completely override the builtin component!
 
+* It always targets the latest *released* version of Home Assistant. No attempts
+  to be backwards compatible will be made.
+
 ### Changes
+
+## pyatv 0.6.1 update 4
+
+Fix incorrect way to print device name in debug logs which caused
+errors like these:
+
+    AttributeError: 'MrpAppleTV' object has no attribute 'name'
+
+Also added a note at the top of this readme that indicates which version of
+Home Assistant that is required.
 
 ## pyatv 0.6.1 update 3
 
