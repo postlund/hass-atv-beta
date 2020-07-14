@@ -42,6 +42,21 @@ Other limitations as follows:
 
 ### Changes
 
+## pyatv 0.7.0
+
+Scanning code has been re-written in this release. Please report back if you
+experience problems that you didn't have prior to this update.
+
+TCP keep-alive is now used, so stale connections (caused by for instance pulling
+the network cable to the Apple TV) should be discovered and handled within
+20 seconds or so.
+
+Few bug fixes:
+* Pairing with DMAP now works again
+* Fixed invalid device state when apps report bad playback rate
+* Application name should always be available now (I hope...)
+* Potential fix for hanging connections (i.e. no updates in the frontend)
+
 ## pyatv 0.6.1 update 4
 
 Fix incorrect way to print device name in debug logs which caused
