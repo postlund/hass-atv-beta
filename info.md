@@ -42,6 +42,12 @@ Other limitations as follows:
 
 ### Changes
 
+## pyatv 0.7.0 update 3
+
+Fixes:
+
+    NameError: name 'hass' is not defined
+
 ## pyatv 0.7.0 update 2
 
 Re-use zeroconf client from Home Assistant when pairing.

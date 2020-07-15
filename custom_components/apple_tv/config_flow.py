@@ -263,7 +263,7 @@ class AppleTVConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         abort_reason = None
         try:
             session = async_get_clientsession(self.hass)
-            zeroconf_instance = await zeroconf.async_get_instance(hass)
+            zeroconf_instance = await zeroconf.async_get_instance(self.hass)
             self.pairing = await pair(
                 self.atv,
                 self.protocol,
