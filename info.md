@@ -42,6 +42,12 @@ Other limitations as follows:
 
 ### Changes
 
+## pyatv 0.7.0 update 4
+
+Fixes:
+
+    TypeError: __init__() got an unexpected keyword argument 'zeroconf'
+
 ## pyatv 0.7.0 update 3
 
 Fixes:

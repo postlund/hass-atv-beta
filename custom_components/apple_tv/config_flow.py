@@ -263,13 +263,13 @@ class AppleTVConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         abort_reason = None
         try:
             session = async_get_clientsession(self.hass)
-            zeroconf_instance = await zeroconf.async_get_instance(self.hass)
+            options = {}
+            if self.protocol == const.Protocol.DMAP:
+                options["zeroconf"] = await zeroconf.async_get_instance(self.hass)
+                options["name"] = "Home Assistant"
+
             self.pairing = await pair(
-                self.atv,
-                self.protocol,
-                self.hass.loop,
-                session=session,
-                zeroconf=zeroconf_instance,
+                self.atv, self.protocol, self.hass.loop, session=session, **options
             )
             await self.pairing.begin()
         except exceptions.ConnectionFailedError:
