@@ -42,6 +42,10 @@ Other limitations as follows:
 
 ### Changes
 
+## pyatv 0.7.0 update 2
+
+Re-use zeroconf client from Home Assistant when pairing.
+
 ## pyatv 0.7.0
 
 Scanning code has been re-written in this release. Please report back if you

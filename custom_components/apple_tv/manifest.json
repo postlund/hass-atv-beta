@@ -12,7 +12,7 @@
     "_touch-able._tcp.local."
   ],
   "dependencies": [],
-  "after_dependencies": ["discovery"],
+  "after_dependencies": ["discovery", "zeroconf"],
   "codeowners": [
     "@postlund"
   ]
