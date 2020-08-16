@@ -31,9 +31,8 @@ features after that. The feature list is available
 
 Other limitations as follows:
 
-* As Home Assistant does not support zeroconf for custom components, auto-discovery
-  will not work with this component. You will have to manually add your device
-  via the Integrations page.
+* Automatic discovery for custom components was added in 0.114. Make sure to
+ run at least that version for discovery to work.
 
 * This component will completely override the builtin component!
 
@@ -41,6 +40,17 @@ Other limitations as follows:
   to be backwards compatible will be made.
 
 ### Changes
+
+## pyatv 0.7.1
+
+This release mainly fixes a bunch of scanning issues.
+
+Changelog from pyatv:
+
+* Fixed lots of issues with scanning
+* Improved performance for MRP playing information
+* Fixed wrong identifier for DMAP when MDNS name collision exists
+* Support for python 3.9 (beta)
 
 ## pyatv 0.7.0 update 4
 
