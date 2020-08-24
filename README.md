@@ -41,6 +41,18 @@ Other limitations as follows:
 
 ### Changes
 
+## pyatv 0.7.2
+
+Should fix this issue:
+
+    NotImplementedError: nscount > 0
+
+Some commands are no longer ACK'ed to fix compatibility with tvOS 14 beta.
+
+The home sharing service is no longer discovered in favor of always pairing DMAP.
+This removes duplicate entries among auto-discovered devices. Always pairing
+is also more stable (details: https://github.com/postlund/pyatv/issues/805)
+
 ## pyatv 0.7.1
 
 This release mainly fixes a bunch of scanning issues.
