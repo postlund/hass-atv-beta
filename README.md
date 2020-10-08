@@ -41,6 +41,10 @@ Other limitations as follows:
 
 ### Changes
 
+## pyatv 0.7.3
+
+Minor bug fixes.
+
 ## pyatv 0.7.2
 
 Should fix this issue:
