@@ -18,6 +18,13 @@ Issues and trouble reports should be reported in the `pyatv` repository:
 
 ## Changes
 
+### Release 2 (current)
+
+Synchronize with Home Assistant dev branch. Includes support for suggested areas and
+bug fix for crashing apps on tvOS 14.5 (beta).
+
+### Release 1
+
 Currently the same as Home Assistant 2021.3.1. Compared to previous version of the
 beta component, YAML support has been dropped and some status messages that used to
 appear as `title` in the media player has been removed. Some additonal features,
