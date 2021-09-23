@@ -1,16 +1,12 @@
 # Apple TV Beta Component
 
-**TL;DR: What you see here is already available in the official Home Assistant releases.
-You do not need to use this repository anymore. If you have problems after migrating,
-please remove your devices and add them again.**
+**READ EVERYTHING BEFORE UPGRADING!!!**
 
-This is the beta component repository for the Apple TV component in Home Assistant.
-In the past, it has been used to ship an upcoming uplift of the Apple TV component
-supporting devices running tvOS. That uplift shipped with Home Assistant 2020.12.1.
-The repository is kept only for potential major changes in the future, but will for
-most part just replicate whatever has already been merged in Home Assistant core
-repository. So generally you do not need to use this custom repository at all, unless
-instructed to do so for beta testing purposes.
+**TL;DR Initial work to support tvOS 15. Old config is not compatible, please remove
+previously added devices before upgrading (or let me know what happens if you don't)!**
+
+This is the beta version of the Apple TV integration for Home Assistant. Use with
+care, possibly unstable and/or non-working code lives here. Be warned (but also, be brave).
 
 Issues and trouble reports should be reported in the `pyatv` repository:
 
@@ -18,20 +14,18 @@ Issues and trouble reports should be reported in the `pyatv` repository:
 
 ## Changes
 
-### Release 2 (current)
+### Release 1 (current)
 
-Synchronize with Home Assistant dev branch. Includes support for suggested areas and
-bug fix for crashing apps on tvOS 14.5 (beta).
+Summary of changes:
 
-### Release 1
-
-Currently the same as Home Assistant 2021.3.1. Compared to previous version of the
-beta component, YAML support has been dropped and some status messages that used to
-appear as `title` in the media player has been removed. Some additonal features,
-like shuffle, repeat and volume controls have been added. But otherwise it's the same.
-
-It should be safe to upgrade, but if you run in to problems, make sure to remove your
-devices from Integrations and adding them again before opening an issue.
+* Restores support for tvOS 15, still rough around the edges
+* Supports HomePods (full media controls)
+* Local audio files can be streamed via RAOP (AirPlay) to all supported devices
+  via the `play_media` service
+* Basic support for arbitrary AirPlay speakers. Metadata **ONLY** works when streaming
+  from Home Assistant, i.e. it will *not* reflect what someone else is playing. No media
+  controls are working.
+* Barely tested meaning tons of fun testing for you!
 
 ## Setting up
 

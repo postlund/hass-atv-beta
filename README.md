@@ -1,16 +1,12 @@
 # Apple TV Beta Component
 
-**TL;DR: What you see here is already available in the official Home Assistant releases.
-You do not need to use this repository anymore. If you have problems after migrating,
-please remove your devices and add them again.**
+**==> READ EVERYTHING BEFORE UPGRADING!!! <==**
 
-This is the beta component repository for the Apple TV component in Home Assistant.
-In the past, it has been used to ship an upcoming uplift of the Apple TV component
-supporting devices running tvOS. That uplift shipped with Home Assistant 2020.12.1.
-The repository is kept only for potential major changes in the future, but will for
-most part just replicate whatever has already been merged in Home Assistant core
-repository. So generally you do not need to use this custom repository at all, unless
-instructed to do so for beta testing purposes.
+**TL;DR Initial work to support tvOS 15. Old config is not compatible, please remove
+previously added devices before upgrading (or let me know what happens if you don't)!**
+
+This is the beta version of the Apple TV integration for Home Assistant. Use with
+care, possibly unstable and/or non-working code lives here. Be warned (but also, be brave).
 
 Issues and trouble reports should be reported in the `pyatv` repository:
 
@@ -18,20 +14,23 @@ Issues and trouble reports should be reported in the `pyatv` repository:
 
 ## Changes
 
-### Release 2 (current)
+### Release 1 (current)
 
-Synchronize with Home Assistant dev branch. Includes support for suggested areas and
-bug fix for crashing apps on tvOS 14.5 (beta).
+Summary of changes:
 
-### Release 1
+* Restores support for tvOS 15, still rough around the edges
+* Supports HomePods (full media controls)
+* Local audio files can be streamed via RAOP (AirPlay) to all supported devices
+  via the `play_media` service
+* Basic support for arbitrary AirPlay speakers. Metadata **ONLY** works when streaming
+  from Home Assistant, i.e. it will *not* reflect what someone else is streaming to
+  the device (the HomePod being an exception). No media controls are working.
+* Barely tested meaning tons of fun testing for you!
 
-Currently the same as Home Assistant 2021.3.1. Compared to previous version of the
-beta component, YAML support has been dropped and some status messages that used to
-appear as `title` in the media player has been removed. Some additonal features,
-like shuffle, repeat and volume controls have been added. But otherwise it's the same.
+Known issues:
 
-It should be safe to upgrade, but if you run in to problems, make sure to remove your
-devices from Integrations and adding them again before opening an issue.
+* Music app/iTunes instances are discovered, but pairing will fail as pairing Companion
+  is not possible (no PIN) - will be fixed in next update
 
 ## Setting up
 
@@ -39,6 +38,26 @@ Head over to that Integrations page and add an Apple TV from there. You have to
 provide either the name of a device, its IP-address or a unique identifier
 (that you got via `atvremote scan`). If everything works as expected you should
 see the discovered devices during the initial step.
+
+## Streaming audio
+
+If the RAOP protocol is properly set up during pairing *and* if a file with supported
+file type is provided when calling the `play_media` service, then the integration will
+now stream that file to the device, which is great. However, no media controls works
+in this case. So, you cannot stop, pause or in any way abort something being streamed.
+This is a limitation in pyatv: those features are not supported *yet*.
+
+**Please do not open issues regarding this!**
+
+## Text-To-Speech
+
+A hack to support TTS is included here. It will likely not be included in the final
+merged version of the integration, but hopefully serve as a PoC to show what is needed
+to support it. The goal is to come up with a proper way of doing this.
+
+This is built on top of "Streaming audio" above, so the same limitations apply.
+
+**Again, please do not open issues regarding this!**
 
 ## Debug logs
 

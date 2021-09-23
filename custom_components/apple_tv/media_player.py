@@ -1,5 +1,7 @@
 """Support for Apple TV media player."""
+import asyncio
 import logging
+from os import path
 
 from pyatv.const import (
     DeviceState,
@@ -9,6 +11,7 @@ from pyatv.const import (
     RepeatState,
     ShuffleState,
 )
+from pyatv.helpers import is_streamable
 
 from homeassistant.components.media_player import MediaPlayerEntity
 from homeassistant.components.media_player.const import (
@@ -74,6 +77,8 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
 
 class AppleTvMediaPlayer(AppleTVEntity, MediaPlayerEntity):
     """Representation of an Apple TV media player."""
+
+    _attr_supported_features = SUPPORT_APPLE_TV
 
     def __init__(self, name, identifier, manager, **kwargs):
         """Initialize the Apple TV media player."""
@@ -171,13 +176,46 @@ class AppleTvMediaPlayer(AppleTVEntity, MediaPlayerEntity):
 
     async def async_play_media(self, media_type, media_id, **kwargs):
         """Send the play_media command to the media player."""
-        await self.atv.stream.play_url(media_id)
+        # TODO: Hack to make TTS work with streaming (how to do this properly?)
+        if "/api/tts_proxy/" in media_id:
+            # Construct local file path to TTS file
+            media_id = path.join(
+                self.hass.config.config_dir, "tts", media_id.split("/")[-1]
+            )
+
+            try:
+                await asyncio.wait_for(self._wait_for_tts_file(media_id), 5.0)
+            except asyncio.TimeoutError:
+                _LOGGER.error("Timed out while waiting for TTS file")
+                return
+
+        # If input (file) has a file format supported by pyatv, then stream it with
+        # RAOP. Otherwise try to play it with regular AirPlay.
+        if self._is_feature_available(FeatureName.StreamFile) and await is_streamable(
+            media_id
+        ):
+            _LOGGER.debug("Streaming %s via RAOP", media_id)
+            await self.atv.stream.stream_file(media_id)
+        elif self._is_feature_available(FeatureName.PlayUrl):
+            _LOGGER.debug("Playing %s via AirPlay", media_id)
+            await self.atv.stream.play_url(media_id)
+        else:
+            _LOGGER.error("Media streaming is not possible with current configuration")
+
+    async def _wait_for_tts_file(self, tts_file):
+        _LOGGER.debug("Waiting for TTS file %s to appear", tts_file)
+        while not path.exists(tts_file):
+            await asyncio.sleep(0.5)
 
     @property
     def media_image_hash(self):
         """Hash value for media image."""
         state = self.state
-        if self._playing and state not in [None, STATE_OFF, STATE_IDLE]:
+        if (
+            self._playing
+            and self._is_feature_available(FeatureName.Artwork)
+            and state not in [None, STATE_OFF, STATE_IDLE]
+        ):
             return self.atv.metadata.artwork_id
         return None
 
@@ -229,11 +267,6 @@ class AppleTvMediaPlayer(AppleTVEntity, MediaPlayerEntity):
             return self._playing.shuffle != ShuffleState.Off
         return None
 
-    @property
-    def supported_features(self):
-        """Flag media player features that are supported."""
-        return SUPPORT_APPLE_TV
-
     def _is_feature_available(self, feature):
         """Return if a feature is available."""
         if self.atv and self._playing:
@@ -253,7 +286,6 @@ class AppleTvMediaPlayer(AppleTVEntity, MediaPlayerEntity):
         """Pause media on media player."""
         if self._playing:
             await self.atv.remote_control.play_pause()
-        return None
 
     async def async_media_play(self):
         """Play media."""
@@ -288,12 +320,12 @@ class AppleTvMediaPlayer(AppleTVEntity, MediaPlayerEntity):
     async def async_volume_up(self):
         """Turn volume up for media player."""
         if self.atv:
-            await self.atv.remote_control.volume_up()
+            await self.atv.audio.volume_up()
 
     async def async_volume_down(self):
         """Turn volume down for media player."""
         if self.atv:
-            await self.atv.remote_control.volume_down()
+            await self.atv.audio.volume_down()
 
     async def async_set_repeat(self, repeat):
         """Set repeat mode."""
