@@ -4,7 +4,7 @@ import logging
 from random import randrange
 
 from pyatv import connect, exceptions, scan
-from pyatv.const import Protocol
+from pyatv.const import DeviceModel, Protocol
 from pyatv.convert import model_str
 
 from homeassistant.components.media_player import DOMAIN as MP_DOMAIN
@@ -25,7 +25,13 @@ from homeassistant.helpers.dispatcher import (
 )
 from homeassistant.helpers.entity import Entity
 
-from .const import CONF_CREDENTIALS, CONF_RECONFIGURE, CONF_START_OFF, DOMAIN
+from .const import (
+    CONF_CREDENTIALS,
+    CONF_IDENTIFIERS,
+    CONF_RECONFIGURE,
+    CONF_START_OFF,
+    DOMAIN,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -281,7 +287,7 @@ class AppleTVManager:
 
     async def _scan(self):
         """Try to find device by scanning for it."""
-        identifier = self.config_entry.unique_id
+        identifiers = set(self.config_entry.data[CONF_IDENTIFIERS])
         address = self.config_entry.data[CONF_ADDRESS]
 
         # Only scan for and set up protocols that was successfully paired
@@ -290,24 +296,24 @@ class AppleTVManager:
             for protocol in self.config_entry.data[CONF_CREDENTIALS]
         }
 
-        _LOGGER.debug("Discovering device %s", identifier)
+        _LOGGER.debug("Discovering device %s", self.config_entry.title)
         atvs = await scan(
-            self.hass.loop, identifier=identifier, protocol=protocols, hosts=[address]
+            self.hass.loop, identifier=identifiers, protocol=protocols, hosts=[address]
         )
         if atvs:
             return atvs[0]
 
         _LOGGER.debug(
             "Failed to find device %s with address %s, trying to scan",
-            identifier,
+            self.config_entry.title,
             address,
         )
 
-        atvs = await scan(self.hass.loop, identifier=identifier, protocol=protocols)
+        atvs = await scan(self.hass.loop, identifier=identifiers, protocol=protocols)
         if atvs:
             return atvs[0]
 
-        _LOGGER.debug("Failed to find device %s, trying later", identifier)
+        _LOGGER.debug("Failed to find device %s, trying later", self.config_entry.title)
 
         return None
 
@@ -316,8 +322,16 @@ class AppleTVManager:
         credentials = self.config_entry.data[CONF_CREDENTIALS]
         session = async_get_clientsession(self.hass)
 
-        for protocol, creds in credentials.items():
-            conf.set_credentials(Protocol(int(protocol)), creds)
+        for protocol_int, creds in credentials.items():
+            protocol = Protocol(int(protocol_int))
+            if conf.get_service(protocol) is not None:
+                conf.set_credentials(protocol, creds)
+            else:
+                _LOGGER.warning(
+                    "Protocol %s not found for %s, functionality will be reduced",
+                    protocol.name,
+                    self.config_entry.data[CONF_NAME],
+                )
 
         _LOGGER.debug("Connecting to device %s", self.config_entry.data[CONF_NAME])
         self.atv = await connect(conf, self.hass.loop, session=session)
@@ -352,7 +366,11 @@ class AppleTVManager:
         if self.atv:
             dev_info = self.atv.device_info
 
-            attrs["model"] = model_str(dev_info.model)
+            attrs["model"] = (
+                dev_info.raw_model
+                if dev_info.model == DeviceModel.Unknown and dev_info.raw_model
+                else model_str(dev_info.model)
+            )
             attrs["sw_version"] = dev_info.version
 
             if dev_info.mac:

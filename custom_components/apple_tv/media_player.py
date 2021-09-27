@@ -88,8 +88,10 @@ class AppleTvMediaPlayer(AppleTVEntity, MediaPlayerEntity):
     @callback
     def async_device_connected(self, atv):
         """Handle when connection is made to device."""
-        self.atv.push_updater.listener = self
-        self.atv.push_updater.start()
+        # NB: Do not use _is_feature_available here as it only works when playing
+        if self.atv.features.in_state(FeatureState.Available, FeatureName.PushUpdates):
+            self.atv.push_updater.listener = self
+            self.atv.push_updater.start()
 
     @callback
     def async_device_disconnected(self):

@@ -5,7 +5,7 @@ import logging
 from random import randrange
 
 from pyatv import exceptions, pair, scan
-from pyatv.const import PairingRequirement
+from pyatv.const import DeviceModel, PairingRequirement
 from pyatv.convert import model_str, protocol_str
 from pyatv.helpers import get_unique_id
 import voluptuous as vol
@@ -18,7 +18,13 @@ from homeassistant.data_entry_flow import AbortFlow
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
-from .const import CONF_CREDENTIALS, CONF_RECONFIGURE, CONF_START_OFF, DOMAIN
+from .const import (
+    CONF_CREDENTIALS,
+    CONF_IDENTIFIERS,
+    CONF_RECONFIGURE,
+    CONF_START_OFF,
+    DOMAIN,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -51,16 +57,16 @@ async def device_scan(identifier, loop, cache=None):
     if cache:
         matches = [atv for atv in cache if _filter_device(atv)]
         if matches:
-            return cache, matches[0]
+            return cache, matches[0], matches[0].all_identifiers
 
     for hosts in (_host_filter(), None):
         scan_result = await scan(loop, timeout=3, hosts=hosts)
         matches = [atv for atv in scan_result if _filter_device(atv)]
 
         if matches:
-            return scan_result, matches[0]
+            return scan_result, matches[0], matches[0].all_identifiers
 
-    return scan_result, None
+    return scan_result, None, None
 
 
 class AppleTVConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
@@ -79,10 +85,32 @@ class AppleTVConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self.target_device = None
         self.scan_result = None
         self.atv = None
+        self.atv_identifiers = None
         self.protocol = None
         self.pairing = None
         self.credentials = {}  # Protocol -> credentials
         self.protocols_to_pair = deque()
+
+    @property
+    def device_identifier(self):
+        """Return a identifier for the config entry.
+
+        A device has multiple unique identifier, but Home Assistant only supports one
+        per config entry. Normally, a "main identifier" is determined by pyatv by
+        first collecting all identifiers and then picking one in a pre-determine order.
+        Under normal circumstances, this works fine but if a service is missing or
+        removed due to deprecation (which happened with MRP), then another identifier
+        will be calculated instead. To fix this, all identifiers belonging to a device
+        is stored with the config entry and one of them (could be random) is used as
+        unique_id for said entry. When a new (zeroconf) service or device is
+        discovered, the identifier is first used to look up if it belongs to an
+        existing config entry. If that's the case, the unique_id from that entry is
+        re-used, otherwise the newly discovered identifier is used instead.
+        """
+        for entry in self._async_current_entries():
+            if self.atv.identifier in entry.data[CONF_IDENTIFIERS]:
+                return entry.unique_id
+        return self.atv.identifier
 
     async def async_step_reauth(self, user_input=None):
         """Handle initial step when updating invalid credentials."""
@@ -103,7 +131,7 @@ class AppleTVConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         """Handle the initial step."""
         # Be helpful to the user and look for devices
         if self.scan_result is None:
-            self.scan_result, _ = await device_scan(None, self.hass.loop)
+            self.scan_result, _, _ = await device_scan(None, self.hass.loop)
 
         errors = {}
         if user_input is not None:
@@ -119,7 +147,7 @@ class AppleTVConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 errors["base"] = "unknown"
             else:
                 await self.async_set_unique_id(
-                    self.atv.identifier, raise_on_progress=False
+                    self.device_identifier, raise_on_progress=False
                 )
                 return await self.async_step_confirm()
 
@@ -150,7 +178,7 @@ class AppleTVConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     async def async_found_zeroconf_device(self, user_input=None):
         """Handle device found after Zeroconf discovery."""
-        await self.async_set_unique_id(self.atv.identifier)
+        await self.async_set_unique_id(self.device_identifier)
         self._abort_if_unique_id_configured()
 
         self.context["identifier"] = self.unique_id
@@ -176,7 +204,7 @@ class AppleTVConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     async def async_find_device(self, allow_exist=False):
         """Scan for the selected device to discover services."""
-        self.scan_result, self.atv = await device_scan(
+        self.scan_result, self.atv, self.atv_identifiers = await device_scan(
             self.target_device, self.hass.loop, cache=self.scan_result
         )
         if not self.atv:
@@ -185,9 +213,14 @@ class AppleTVConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         # Protocols supported by the device are prospects for pairing
         self.protocols_to_pair.extend(service.protocol for service in self.atv.services)
 
+        dev_info = self.atv.device_info
         self.context["title_placeholders"] = {
             "name": self.atv.name,
-            "type": model_str(self.atv.device_info.model),
+            "type": (
+                dev_info.raw_model
+                if dev_info.model == DeviceModel.Unknown and dev_info.raw_model
+                else model_str(dev_info.model)
+            ),
         }
 
         if not allow_exist:
@@ -352,10 +385,11 @@ class AppleTVConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             CONF_NAME: self.atv.name,
             CONF_CREDENTIALS: self.credentials,
             CONF_ADDRESS: str(self.atv.address),
+            CONF_IDENTIFIERS: self.atv_identifiers,
         }
 
         existing_entry = await self.async_set_unique_id(
-            self.atv.identifier, raise_on_progress=False
+            self.device_identifier, raise_on_progress=False
         )
 
         # If an existing config entry is updated, then this was a re-auth
@@ -368,7 +402,9 @@ class AppleTVConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             )
             return self.async_abort(reason="reauth_successful")
 
-        return self.async_create_entry(title=self.atv.name, data=data)
+        return self.async_create_entry(
+            title=self.atv.name, data=data, options={CONF_RECONFIGURE: False}
+        )
 
     def _devices_str(self):
         return ", ".join(

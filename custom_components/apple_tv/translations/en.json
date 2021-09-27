@@ -22,7 +22,7 @@
       },
       "pair_no_pin": {
         "title": "Pairing",
-        "description": "Pairing is required for the `{protocol}` service. Please enter PIN {pin} on your Apple TV to continue."
+        "description": "Pairing is required for the `{protocol}` service. Please enter PIN {pin} on your device to continue."
       },
       "protocol_disabled": {
         "title": "Pairing not possible",

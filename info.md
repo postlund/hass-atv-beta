@@ -1,6 +1,6 @@
 # Apple TV Beta Component
 
-**READ EVERYTHING BEFORE UPGRADING!!!**
+**==> READ EVERYTHING BEFORE UPGRADING!!! <==**
 
 **TL;DR Initial work to support tvOS 15. Old config is not compatible, please remove
 previously added devices before upgrading (or let me know what happens if you don't)!**
@@ -14,7 +14,20 @@ Issues and trouble reports should be reported in the `pyatv` repository:
 
 ## Changes
 
-### Release 1 (current)
+### Release 2 (current)
+
+**Remove previously added devices and add them again, they are NOT compatible!**
+
+* All unique identifiers belonging to a device is now stored in the config
+  entry and are used during discovery. This should make discovery more reliable
+  and hopefully not produce duplicate entries in the Integrations page.
+* Music app/iTunes can now be paired properly
+* Model name now supports names as raw strings, which allows Home Assistant
+  to display the manufacturers model name (you will notice this for
+  auto-discovered devices).
+* Bug fix for non-working volume controls with grouped devices (MRP)
+
+### Release 1
 
 Summary of changes:
 
@@ -23,9 +36,14 @@ Summary of changes:
 * Local audio files can be streamed via RAOP (AirPlay) to all supported devices
   via the `play_media` service
 * Basic support for arbitrary AirPlay speakers. Metadata **ONLY** works when streaming
-  from Home Assistant, i.e. it will *not* reflect what someone else is playing. No media
-  controls are working.
+  from Home Assistant, i.e. it will *not* reflect what someone else is streaming to
+  the device (the HomePod being an exception). No media controls are working.
 * Barely tested meaning tons of fun testing for you!
+
+Known issues:
+
+* Music app/iTunes instances are discovered, but pairing will fail as pairing Companion
+  is not possible (no PIN) - will be fixed in next update
 
 ## Setting up
 
@@ -33,6 +51,26 @@ Head over to that Integrations page and add an Apple TV from there. You have to
 provide either the name of a device, its IP-address or a unique identifier
 (that you got via `atvremote scan`). If everything works as expected you should
 see the discovered devices during the initial step.
+
+## Streaming audio
+
+If the RAOP protocol is properly set up during pairing *and* if a file with supported
+file type is provided when calling the `play_media` service, then the integration will
+now stream that file to the device, which is great. However, no media controls works
+in this case. So, you cannot stop, pause or in any way abort something being streamed.
+This is a limitation in pyatv: those features are not supported *yet*.
+
+**Please do not open issues regarding this!**
+
+## Text-To-Speech
+
+A hack to support TTS is included here. It will likely not be included in the final
+merged version of the integration, but hopefully serve as a PoC to show what is needed
+to support it. The goal is to come up with a proper way of doing this.
+
+This is built on top of "Streaming audio" above, so the same limitations apply.
+
+**Again, please do not open issues regarding this!**
 
 ## Debug logs
 

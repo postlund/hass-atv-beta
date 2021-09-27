@@ -14,7 +14,20 @@ Issues and trouble reports should be reported in the `pyatv` repository:
 
 ## Changes
 
-### Release 1 (current)
+### Release 2 (current)
+
+**Remove previously added devices and add them again, they are NOT compatible!**
+
+* All unique identifiers belonging to a device is now stored in the config
+  entry and are used during discovery. This should make discovery more reliable
+  and hopefully not produce duplicate entries in the Integrations page.
+* Music app/iTunes can now be paired properly
+* Model name now supports names as raw strings, which allows Home Assistant
+  to display the manufacturers model name (you will notice this for
+  auto-discovered devices).
+* Bug fix for non-working volume controls with grouped devices (MRP)
+
+### Release 1
 
 Summary of changes:
 
