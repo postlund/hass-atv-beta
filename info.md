@@ -16,7 +16,8 @@ Issues and trouble reports should be reported in the `pyatv` repository:
 
 ### Release 2 (current)
 
-**Remove previously added devices and add them again, they are NOT compatible!**
+**Config entry version has been bumped with no migration path, please remove all
+devices and add them again.**
 
 * All unique identifiers belonging to a device is now stored in the config
   entry and are used during discovery. This should make discovery more reliable

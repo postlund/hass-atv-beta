@@ -72,7 +72,7 @@ async def device_scan(identifier, loop, cache=None):
 class AppleTVConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Handle a config flow for Apple TV."""
 
-    VERSION = 2
+    VERSION = 3
 
     @staticmethod
     @callback
