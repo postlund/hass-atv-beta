@@ -14,7 +14,15 @@ Issues and trouble reports should be reported in the `pyatv` repository:
 
 ## Changes
 
-### Release 2 (current)
+### Release 3 (current)
+
+* MRP servive is ignored for tvOS 15 devices which means there should be no
+  (failed) attempts to pair that protocol
+* Connecting to Apple TV 3 (and older) devices should work again
+* Stop is now supported by RAOP, which means it is now possible to stop
+  a file that is being streamed
+
+### Release 2
 
 **Config entry version has been bumped with no migration path, please remove all
 devices and add them again.**
