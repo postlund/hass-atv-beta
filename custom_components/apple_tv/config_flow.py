@@ -14,7 +14,6 @@ from homeassistant import config_entries
 from homeassistant.components.zeroconf import async_get_instance
 from homeassistant.const import CONF_ADDRESS, CONF_NAME, CONF_PIN, CONF_TYPE
 from homeassistant.core import callback
-from homeassistant.data_entry_flow import AbortFlow
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
@@ -255,12 +254,18 @@ class AppleTVConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         self.protocol = self.protocols_to_pair.popleft()
         service = self.atv.get_service(self.protocol)
+        print("SERVICE:", service)
+
+        # Service requires a password
+        if service.requires_password:
+            return await self.async_step_password()
 
         # Figure out, depending on protocol, what kind of pairing is needed
         if service.pairing == PairingRequirement.Unsupported:
             _LOGGER.debug("%s does not support pairing", self.protocol)
             return await self.async_pair_next_protocol()
         if service.pairing == PairingRequirement.Disabled:
+            print("disabled")
             return await self.async_step_protocol_disabled()
         elif service.pairing == PairingRequirement.NotNeeded:
             _LOGGER.debug("%s does not require pairing", self.protocol)
@@ -325,8 +330,6 @@ class AppleTVConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             except exceptions.PairingError:
                 _LOGGER.exception("Authentication problem")
                 errors["base"] = "invalid_auth"
-            except AbortFlow:
-                raise
             except Exception:  # pylint: disable=broad-except
                 _LOGGER.exception("Unexpected exception")
                 errors["base"] = "unknown"
@@ -366,6 +369,16 @@ class AppleTVConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         return self.async_show_form(
             step_id="service_problem",
+            description_placeholders={"protocol": protocol_str(self.protocol)},
+        )
+
+    async def async_step_password(self, user_input=None):
+        """Inform user that password is not supported."""
+        if user_input is not None:
+            return await self.async_pair_next_protocol()
+
+        return self.async_show_form(
+            step_id="password",
             description_placeholders={"protocol": protocol_str(self.protocol)},
         )
 

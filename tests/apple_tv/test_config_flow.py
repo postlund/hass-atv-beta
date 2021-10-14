@@ -3,26 +3,32 @@
 from unittest.mock import patch
 
 from pyatv import exceptions
-from pyatv.const import Protocol
+from pyatv.const import Protocol, PairingRequirement
 import pytest
 
 from homeassistant import config_entries, data_entry_flow
-from homeassistant.components.apple_tv.const import CONF_START_OFF, DOMAIN
+from custom_components.apple_tv.const import CONF_RECONFIGURE, CONF_START_OFF, DOMAIN
 
 from tests.common import MockConfigEntry
 
+import custom_components.apple_tv
+
 DMAP_SERVICE = {
     "type": "_touch-able._tcp.local.",
-    "name": "dmapid.something",
+    "name": "dmapid",
     "properties": {"CtlN": "Apple TV"},
 }
 
+@pytest.fixture(autouse=True)
+def use_mocked_zeroconf(mock_zeroconf):
+    """Mock zeroconf in all tests."""
+    pass
 
 @pytest.fixture(autouse=True)
 def mock_setup_entry():
     """Mock setting up a config entry."""
     with patch(
-        "homeassistant.components.apple_tv.async_setup_entry", return_value=True
+        "custom_components.apple_tv.async_setup_entry", return_value=True
     ):
         yield
 
@@ -77,7 +83,7 @@ async def test_user_adds_full_device(hass, full_device, pairing):
         {"device_input": "MRP Device"},
     )
     assert result2["type"] == data_entry_flow.RESULT_TYPE_FORM
-    assert result2["description_placeholders"] == {"name": "MRP Device"}
+    assert result2["description_placeholders"] == {"name": "MRP Device", "type": "Unknown"}
 
     result3 = await hass.config_entries.flow.async_configure(result["flow_id"], {})
     assert result3["type"] == data_entry_flow.RESULT_TYPE_FORM
@@ -104,8 +110,10 @@ async def test_user_adds_full_device(hass, full_device, pairing):
             Protocol.MRP.value: "mrp_creds",
             Protocol.AirPlay.value: "airplay_creds",
         },
+        "identifiers": [
+            "mrpid", "dmapid", "airplayid"
+        ],
         "name": "MRP Device",
-        "protocol": Protocol.MRP.value,
     }
 
 
@@ -120,7 +128,7 @@ async def test_user_adds_dmap_device(hass, dmap_device, dmap_pin, pairing):
         {"device_input": "DMAP Device"},
     )
     assert result2["type"] == data_entry_flow.RESULT_TYPE_FORM
-    assert result2["description_placeholders"] == {"name": "DMAP Device"}
+    assert result2["description_placeholders"] == {"name": "DMAP Device", "type": "Unknown"}
 
     result3 = await hass.config_entries.flow.async_configure(result["flow_id"], {})
     assert result3["type"] == data_entry_flow.RESULT_TYPE_FORM
@@ -133,8 +141,8 @@ async def test_user_adds_dmap_device(hass, dmap_device, dmap_pin, pairing):
     assert result6["data"] == {
         "address": "127.0.0.1",
         "credentials": {Protocol.DMAP.value: "dmap_creds"},
+        "identifiers": ["dmapid"],
         "name": "DMAP Device",
-        "protocol": Protocol.DMAP.value,
     }
 
 
@@ -158,29 +166,6 @@ async def test_user_adds_dmap_device_failed(hass, dmap_device, dmap_pin, pairing
     assert result2["reason"] == "device_did_not_pair"
 
 
-async def test_user_adds_device_with_credentials(hass, dmap_device_with_credentials):
-    """Test adding DMAP device with existing credentials (home sharing)."""
-    result = await hass.config_entries.flow.async_init(
-        DOMAIN, context={"source": config_entries.SOURCE_USER}
-    )
-
-    result2 = await hass.config_entries.flow.async_configure(
-        result["flow_id"],
-        {"device_input": "DMAP Device"},
-    )
-    assert result2["type"] == data_entry_flow.RESULT_TYPE_FORM
-    assert result2["description_placeholders"] == {"name": "DMAP Device"}
-
-    result3 = await hass.config_entries.flow.async_configure(result["flow_id"], {})
-    assert result3["type"] == "create_entry"
-    assert result3["data"] == {
-        "address": "127.0.0.1",
-        "credentials": {Protocol.DMAP.value: "dummy_creds"},
-        "name": "DMAP Device",
-        "protocol": Protocol.DMAP.value,
-    }
-
-
 async def test_user_adds_device_with_ip_filter(
     hass, dmap_device_with_credentials, mock_scan
 ):
@@ -194,16 +179,7 @@ async def test_user_adds_device_with_ip_filter(
         {"device_input": "127.0.0.1"},
     )
     assert result2["type"] == data_entry_flow.RESULT_TYPE_FORM
-    assert result2["description_placeholders"] == {"name": "DMAP Device"}
-
-    result3 = await hass.config_entries.flow.async_configure(result["flow_id"], {})
-    assert result3["type"] == "create_entry"
-    assert result3["data"] == {
-        "address": "127.0.0.1",
-        "credentials": {Protocol.DMAP.value: "dummy_creds"},
-        "name": "DMAP Device",
-        "protocol": Protocol.DMAP.value,
-    }
+    assert result2["description_placeholders"] == {"name": "DMAP Device", "type": "Unknown"}
 
 
 async def test_user_adds_device_by_ip_uses_unicast_scan(hass, mock_scan):
@@ -233,21 +209,7 @@ async def test_user_adds_existing_device(hass, mrp_device):
         {"device_input": "127.0.0.1"},
     )
     assert result2["type"] == data_entry_flow.RESULT_TYPE_FORM
-    assert result2["errors"] == {"base": "already_configured"}
-
-
-async def test_user_adds_unusable_device(hass, airplay_device):
-    """Test that it is not possible to add pure AirPlay device."""
-    result = await hass.config_entries.flow.async_init(
-        DOMAIN, context={"source": config_entries.SOURCE_USER}
-    )
-
-    result2 = await hass.config_entries.flow.async_configure(
-        result["flow_id"],
-        {"device_input": "AirPlay Device"},
-    )
-    assert result2["type"] == data_entry_flow.RESULT_TYPE_FORM
-    assert result2["errors"] == {"base": "no_usable_service"}
+    assert result2["errors"] == {"base": "already_configured_device"}
 
 
 async def test_user_connection_failed(hass, mrp_device, pairing_mock):
@@ -273,7 +235,7 @@ async def test_user_connection_failed(hass, mrp_device, pairing_mock):
         {},
     )
     assert result2["type"] == data_entry_flow.RESULT_TYPE_ABORT
-    assert result2["reason"] == "invalid_config"
+    assert result2["reason"] == "setup_failed"
 
 
 async def test_user_start_pair_error_failed(hass, mrp_device, pairing_mock):
@@ -296,6 +258,63 @@ async def test_user_start_pair_error_failed(hass, mrp_device, pairing_mock):
     assert result2["type"] == data_entry_flow.RESULT_TYPE_ABORT
     assert result2["reason"] == "invalid_auth"
 
+
+async def test_user_pair_service_with_password(hass, airplay_device_with_password, pairing_mock):
+    """Test pairing with service requiring a password (not supported)."""
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": config_entries.SOURCE_USER}
+    )
+
+    await hass.config_entries.flow.async_configure(
+        result["flow_id"],
+        {"device_input": "MRP Device"},
+    )
+
+    await hass.config_entries.flow.async_configure(
+        result["flow_id"],
+        {},
+    )
+
+    result2 = await hass.config_entries.flow.async_configure(
+        result["flow_id"],
+        {},
+    )
+    assert result2["type"] == data_entry_flow.RESULT_TYPE_FORM
+    assert result2["step_id"] == "password"
+
+    result3 = await hass.config_entries.flow.async_configure(
+        result["flow_id"],
+        {},
+    )
+    assert result3["type"] == data_entry_flow.RESULT_TYPE_ABORT
+    assert result3["reason"] == "setup_failed"
+
+
+@pytest.mark.parametrize("pairing_requirement", [(PairingRequirement.Disabled)])
+async def test_user_pair_disabled_service(hass, dmap_with_requirement, pairing_mock):
+    """Test pairing with disabled service (is ignored)."""
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": config_entries.SOURCE_USER}
+    )
+
+    await hass.config_entries.flow.async_configure(
+        result["flow_id"],
+        {"device_input": "DMAP Device"},
+    )
+
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"],
+        {},
+    )
+    assert result["type"] == data_entry_flow.RESULT_TYPE_FORM
+    assert result["step_id"] == "protocol_disabled"
+
+    result2 = await hass.config_entries.flow.async_configure(
+        result["flow_id"],
+        {},
+    )
+    assert result2["type"] == data_entry_flow.RESULT_TYPE_ABORT
+    assert result2["reason"] == "setup_failed"
 
 async def test_user_pair_invalid_pin(hass, mrp_device, pairing_mock):
     """Test pairing with invalid pin."""
@@ -401,6 +420,7 @@ async def test_zeroconf_unsupported_service_aborts(hass):
         context={"source": config_entries.SOURCE_ZEROCONF},
         data={
             "type": "_dummy._tcp.local.",
+            "name": "dummy",
             "properties": {},
         },
     )
@@ -415,11 +435,12 @@ async def test_zeroconf_add_mrp_device(hass, mrp_device, pairing):
         context={"source": config_entries.SOURCE_ZEROCONF},
         data={
             "type": "_mediaremotetv._tcp.local.",
+            "name": "Kitchen",
             "properties": {"UniqueIdentifier": "mrpid", "Name": "Kitchen"},
         },
     )
     assert result["type"] == data_entry_flow.RESULT_TYPE_FORM
-    assert result["description_placeholders"] == {"name": "MRP Device"}
+    assert result["description_placeholders"] == {"name": "MRP Device", "type": "Unknown"}
 
     result2 = await hass.config_entries.flow.async_configure(
         result["flow_id"],
@@ -435,8 +456,8 @@ async def test_zeroconf_add_mrp_device(hass, mrp_device, pairing):
     assert result3["data"] == {
         "address": "127.0.0.1",
         "credentials": {Protocol.MRP.value: "mrp_creds"},
+        "identifiers": ["mrpid"],
         "name": "MRP Device",
-        "protocol": Protocol.MRP.value,
     }
 
 
@@ -446,7 +467,7 @@ async def test_zeroconf_add_dmap_device(hass, dmap_device, dmap_pin, pairing):
         DOMAIN, context={"source": config_entries.SOURCE_ZEROCONF}, data=DMAP_SERVICE
     )
     assert result["type"] == data_entry_flow.RESULT_TYPE_FORM
-    assert result["description_placeholders"] == {"name": "DMAP Device"}
+    assert result["description_placeholders"] == {"name": "DMAP Device", "type": "Unknown"}
 
     result2 = await hass.config_entries.flow.async_configure(
         result["flow_id"],
@@ -460,8 +481,8 @@ async def test_zeroconf_add_dmap_device(hass, dmap_device, dmap_pin, pairing):
     assert result3["data"] == {
         "address": "127.0.0.1",
         "credentials": {Protocol.DMAP.value: "dmap_creds"},
+        "identifiers": ["dmapid"],
         "name": "DMAP Device",
-        "protocol": Protocol.DMAP.value,
     }
 
 
@@ -495,7 +516,7 @@ async def test_zeroconf_add_existing_device(hass, dmap_device):
         DOMAIN, context={"source": config_entries.SOURCE_ZEROCONF}, data=DMAP_SERVICE
     )
     assert result["type"] == data_entry_flow.RESULT_TYPE_ABORT
-    assert result["reason"] == "already_configured"
+    assert result["reason"] == "already_configured_device"
 
 
 async def test_zeroconf_unexpected_error(hass, mock_scan):
@@ -514,7 +535,7 @@ async def test_zeroconf_unexpected_error(hass, mock_scan):
 
 async def test_reconfigure_update_credentials(hass, mrp_device, pairing):
     """Test that reconfigure flow updates config entry."""
-    config_entry = MockConfigEntry(domain="apple_tv", unique_id="mrpid")
+    config_entry = MockConfigEntry(domain="apple_tv", unique_id="mrpid", data={"identifiers": ["mrpid"]})
     config_entry.add_to_hass(hass)
 
     result = await hass.config_entries.flow.async_init(
@@ -534,32 +555,14 @@ async def test_reconfigure_update_credentials(hass, mrp_device, pairing):
         result["flow_id"], {"pin": 1111}
     )
     assert result3["type"] == data_entry_flow.RESULT_TYPE_ABORT
-    assert result3["reason"] == "already_configured"
+    assert result3["reason"] == "reauth_successful"
 
     assert config_entry.data == {
         "address": "127.0.0.1",
-        "protocol": Protocol.MRP.value,
         "name": "MRP Device",
         "credentials": {Protocol.MRP.value: "mrp_creds"},
+        "identifiers": ["mrpid"]
     }
-
-
-async def test_reconfigure_ongoing_aborts(hass, mrp_device):
-    """Test start additional reconfigure flow aborts."""
-    data = {
-        "identifier": "mrpid",
-        "name": "Apple TV",
-    }
-
-    await hass.config_entries.flow.async_init(
-        DOMAIN, context={"source": "reauth"}, data=data
-    )
-
-    result = await hass.config_entries.flow.async_init(
-        DOMAIN, context={"source": "reauth"}, data=data
-    )
-    assert result["type"] == data_entry_flow.RESULT_TYPE_ABORT
-    assert result["reason"] == "already_in_progress"
 
 
 # Options
@@ -581,3 +584,21 @@ async def test_option_start_off(hass):
     assert result2["type"] == "create_entry"
 
     assert config_entry.options[CONF_START_OFF]
+
+
+async def test_option_reconfigure(hass):
+    """Test force of reconfigure flag."""
+    config_entry = MockConfigEntry(
+        domain=DOMAIN, unique_id="dmapid", options={CONF_RECONFIGURE: False}
+    )
+    config_entry.add_to_hass(hass)
+
+    result = await hass.config_entries.options.async_init(config_entry.entry_id)
+    assert result["type"] == data_entry_flow.RESULT_TYPE_FORM
+
+    result2 = await hass.config_entries.options.async_configure(
+        result["flow_id"], user_input={CONF_RECONFIGURE: True}
+    )
+    assert result2["type"] == "create_entry"
+
+    assert config_entry.options[CONF_RECONFIGURE]

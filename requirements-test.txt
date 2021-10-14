@@ -1,0 +1,3 @@
+pyatv==0.9.3
+pytest-homeassistant-custom-component==0.4.5
+mypy-extensions
