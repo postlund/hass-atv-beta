@@ -1,0 +1,19 @@
+image: gitpod/workspace-full
+tasks:
+  - name: HTMLCov
+    init: mkdir -p htmlcov && python -m http.server --directory htmlcov
+  - name: Development
+    init: pip install -r requirements-dev.txt && tox
+
+ports:
+  - port: 8000
+    onOpen: open-preview
+    visibility: private
+
+vscode:
+  extensions:
+    - ms-python.python
+
+github:
+  prebuilds:
+    addBadge: false

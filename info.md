@@ -14,7 +14,19 @@ Issues and trouble reports should be reported in the `pyatv` repository:
 
 ## Changes
 
-### Release 3 (current)
+### Release 4 (current)
+
+This release is mainly preparation for what will be included in Home Assistant.
+Things that have changed:
+
+* Re-structured the repo a bit to make it easier to develop
+* Updated and added test cases
+* Bumped pyatv to 0.9.5
+* Now using release tags instead of just top commit (HACS)
+* A warning will be shown when pairing with a password protected device as that is not supported
+* All translations except for english have been dropped
+
+### Release 3
 
 * MRP servive is ignored for tvOS 15 devices which means there should be no
   (failed) attempts to pair that protocol

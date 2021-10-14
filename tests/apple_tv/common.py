@@ -1,7 +1,8 @@
 """Test code shared between test files."""
 
-from pyatv import conf, interface
 from pyatv.const import Protocol
+
+from pyatv import conf, interface
 
 
 class MockPairingHandler(interface.PairingHandler):

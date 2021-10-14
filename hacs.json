@@ -1,0 +1,6 @@
+{
+    "name": "Apple TV Beta",
+    "domains": ["media_player", "remote"],
+    "render_readme": true,
+    "iot_class": "Local Push"
+}
