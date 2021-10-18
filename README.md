@@ -12,9 +12,34 @@ Issues and trouble reports should be reported in the `pyatv` repository:
 
 [**>> Report issues here <<**](https://github.com/postlund/pyatv/issues)
 
+## New features
+
+There are a few new features introduced by this integration, currently not in the version
+shipped with Home Assistant:
+
+* tvOS 15 support
+* HomePods (full media controls)
+* Local audio files can be streamed via RAOP (AirPlay) to all supported devices
+  via the `play_media` service
+* Basic support for arbitrary AirPlay speakers. Metadata **ONLY** works when streaming
+  from Home Assistant, i.e. it will *not* reflect what someone else is streaming to
+  the device (the HomePod being an exception). Only `Stop` button works.
+* Music app/iTunes in macOS can be controlled
+
 ## Changes
 
-### Release 4 (current)
+### Release 1.4
+
+* Lots of work has been done to prevent the same device showing up multiple times in the
+  integrations page.
+* The pre-fill and "device suggestions" part of manually adding a device have been removed
+  to simplify the config flow. Regular Zeroconf discovery should already handle this for
+  most people.
+* Supported feature flags are now updated in the `media_player`, so only controls actually
+  supported will be shown. This is especially convenient for pure AirPlay receivers as
+  only `Stop` is supported, but it was not shown as `Pause` overrode that.
+
+### Release 1.3
 
 This release is mainly preparation for what will be included in Home Assistant.
 Things that have changed:
@@ -77,9 +102,9 @@ see the discovered devices during the initial step.
 
 If the RAOP protocol is properly set up during pairing *and* if a file with supported
 file type is provided when calling the `play_media` service, then the integration will
-now stream that file to the device, which is great. However, no media controls works
-in this case. So, you cannot stop, pause or in any way abort something being streamed.
-This is a limitation in pyatv: those features are not supported *yet*.
+now stream that file to the device, which is great. However, no media controls except for
+stop works in this case. This is a limitation in pyatv: those features are not supported
+*yet*.
 
 **Please do not open issues regarding this!**
 

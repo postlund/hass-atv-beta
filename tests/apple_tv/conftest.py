@@ -2,13 +2,12 @@
 
 from unittest.mock import patch
 
+from pyatv import conf
 from pyatv.const import PairingRequirement, Protocol
 from pyatv.support import http
 import pytest
 
-from pyatv import conf
-
-from .common import MockPairingHandler, create_conf
+from .common import MockPairingHandler, airplay_service, create_conf, mrp_service
 
 
 @pytest.fixture(autouse=True, name="mock_scan")
@@ -80,13 +79,7 @@ def full_device(mock_scan, dmap_pin):
         create_conf(
             "127.0.0.1",
             "MRP Device",
-            conf.ManualService(
-                "mrpid",
-                Protocol.MRP,
-                5555,
-                {},
-                pairing_requirement=PairingRequirement.Mandatory,
-            ),
+            mrp_service(),
             conf.ManualService(
                 "dmapid",
                 Protocol.DMAP,
@@ -94,13 +87,7 @@ def full_device(mock_scan, dmap_pin):
                 {},
                 pairing_requirement=PairingRequirement.Mandatory,
             ),
-            conf.ManualService(
-                "airplayid",
-                Protocol.AirPlay,
-                7777,
-                {},
-                pairing_requirement=PairingRequirement.Mandatory,
-            ),
+            airplay_service(),
         )
     )
     yield mock_scan
@@ -113,13 +100,7 @@ def mrp_device(mock_scan):
         create_conf(
             "127.0.0.1",
             "MRP Device",
-            conf.ManualService(
-                "mrpid",
-                Protocol.MRP,
-                5555,
-                {},
-                pairing_requirement=PairingRequirement.Mandatory,
-            ),
+            mrp_service(),
         )
     )
     yield mock_scan

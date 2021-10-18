@@ -2,13 +2,14 @@
 
 from unittest.mock import patch
 
+from pyatv import exceptions
 from pyatv.const import PairingRequirement, Protocol
 import pytest
 
-import custom_components.apple_tv
 from custom_components.apple_tv.const import CONF_RECONFIGURE, CONF_START_OFF, DOMAIN
 from homeassistant import config_entries, data_entry_flow
-from pyatv import exceptions
+
+from .common import airplay_service, create_conf, mrp_service
 
 from tests.common import MockConfigEntry
 
@@ -40,9 +41,8 @@ async def test_user_input_device_not_found(hass, mrp_device):
     result = await hass.config_entries.flow.async_init(
         DOMAIN, context={"source": config_entries.SOURCE_USER}
     )
-
     assert result["type"] == data_entry_flow.RESULT_TYPE_FORM
-    assert result["description_placeholders"] == {"devices": "`MRP Device (127.0.0.1)`"}
+    assert result["step_id"] == "user"
 
     result2 = await hass.config_entries.flow.async_configure(
         result["flow_id"],
@@ -299,12 +299,7 @@ async def test_user_pair_service_with_password(
 
     await hass.config_entries.flow.async_configure(
         result["flow_id"],
-        {"device_input": "MRP Device"},
-    )
-
-    await hass.config_entries.flow.async_configure(
-        result["flow_id"],
-        {},
+        {"device_input": "AirPlay Device"},
     )
 
     result2 = await hass.config_entries.flow.async_configure(
@@ -587,6 +582,189 @@ async def test_zeroconf_unexpected_error(hass, mock_scan):
     )
     assert result["type"] == data_entry_flow.RESULT_TYPE_ABORT
     assert result["reason"] == "unknown"
+
+
+async def test_zeroconf_abort_if_other_in_progress(hass, mock_scan):
+    """Test discovering unsupported zeroconf service."""
+    mock_scan.result = [create_conf("127.0.0.1", "Device", airplay_service())]
+
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN,
+        context={"source": config_entries.SOURCE_ZEROCONF},
+        data={
+            "type": "_airplay._tcp.local.",
+            "name": "Kitchen",
+            "properties": {"deviceid": "airplayid"},
+        },
+    )
+
+    assert result["type"] == data_entry_flow.RESULT_TYPE_FORM
+    assert result["step_id"] == "confirm"
+
+    mock_scan.result = [
+        create_conf("127.0.0.1", "Device", mrp_service(), airplay_service())
+    ]
+
+    result2 = await hass.config_entries.flow.async_init(
+        DOMAIN,
+        context={"source": config_entries.SOURCE_ZEROCONF},
+        data={
+            "type": "_mediaremotetv._tcp.local.",
+            "name": "Kitchen",
+            "properties": {"UniqueIdentifier": "mrpid", "Name": "Kitchen"},
+        },
+    )
+    assert result2["type"] == data_entry_flow.RESULT_TYPE_ABORT
+    assert result2["reason"] == "already_in_progress"
+
+
+async def test_zeroconf_missing_device_during_protocol_resolve(
+    hass, mock_scan, pairing, mock_zeroconf
+):
+    """Test discovery after service been added to existing flow with missing device."""
+    mock_scan.result = [create_conf("127.0.0.1", "Device", airplay_service())]
+
+    # Find device with AirPlay service and set up flow for it
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN,
+        context={"source": config_entries.SOURCE_ZEROCONF},
+        data={
+            "type": "_airplay._tcp.local.",
+            "name": "Kitchen",
+            "properties": {"deviceid": "airplayid"},
+        },
+    )
+
+    mock_scan.result = [
+        create_conf("127.0.0.1", "Device", mrp_service(), airplay_service())
+    ]
+
+    # Find the same device again, but now also with MRP service. The first flow should
+    # be updated with the MRP service.
+    await hass.config_entries.flow.async_init(
+        DOMAIN,
+        context={"source": config_entries.SOURCE_ZEROCONF},
+        data={
+            "type": "_mediaremotetv._tcp.local.",
+            "name": "Kitchen",
+            "properties": {"UniqueIdentifier": "mrpid", "Name": "Kitchen"},
+        },
+    )
+
+    mock_scan.result = []
+
+    # Number of services found during initial scan (1) will not match the updated count
+    # (2), so it will trigger a re-scan to find all services. This will fail as no
+    # device is found.
+    result2 = await hass.config_entries.flow.async_configure(
+        result["flow_id"],
+        {},
+    )
+    assert result2["type"] == data_entry_flow.RESULT_TYPE_ABORT
+    assert result2["reason"] == "device_not_found"
+
+
+async def test_zeroconf_additional_protocol_resolve_failure(
+    hass, mock_scan, pairing, mock_zeroconf
+):
+    """Test discovery with missing service."""
+    mock_scan.result = [create_conf("127.0.0.1", "Device", airplay_service())]
+
+    # Find device with AirPlay service and set up flow for it
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN,
+        context={"source": config_entries.SOURCE_ZEROCONF},
+        data={
+            "type": "_airplay._tcp.local.",
+            "name": "Kitchen",
+            "properties": {"deviceid": "airplayid"},
+        },
+    )
+
+    mock_scan.result = [
+        create_conf("127.0.0.1", "Device", mrp_service(), airplay_service())
+    ]
+
+    # Find the same device again, but now also with MRP service. The first flow should
+    # be updated with the MRP service.
+    await hass.config_entries.flow.async_init(
+        DOMAIN,
+        context={"source": config_entries.SOURCE_ZEROCONF},
+        data={
+            "type": "_mediaremotetv._tcp.local.",
+            "name": "Kitchen",
+            "properties": {"UniqueIdentifier": "mrpid", "Name": "Kitchen"},
+        },
+    )
+
+    mock_scan.result = [create_conf("127.0.0.1", "Device", airplay_service())]
+
+    # Number of services found during initial scan (1) will not match the updated count
+    # (2), so it will trigger a re-scan to find all services. This will however fail
+    # due to only one of the services found, yielding an error message.
+    result2 = await hass.config_entries.flow.async_configure(
+        result["flow_id"],
+        {},
+    )
+    assert result2["type"] == data_entry_flow.RESULT_TYPE_ABORT
+    assert result2["reason"] == "inconsistent_device"
+
+
+async def test_zeroconf_pair_additionally_found_protocols(
+    hass, mock_scan, pairing, mock_zeroconf
+):
+    """Test discovered protocols are merged to original flow."""
+    mock_scan.result = [create_conf("127.0.0.1", "Device", airplay_service())]
+
+    # Find device with AirPlay service and set up flow for it
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN,
+        context={"source": config_entries.SOURCE_ZEROCONF},
+        data={
+            "type": "_airplay._tcp.local.",
+            "name": "Kitchen",
+            "properties": {"deviceid": "airplayid"},
+        },
+    )
+
+    mock_scan.result = [
+        create_conf("127.0.0.1", "Device", mrp_service(), airplay_service())
+    ]
+
+    # Find the same device again, but now also with MRP service. The first flow should
+    # be updated with the MRP service.
+    await hass.config_entries.flow.async_init(
+        DOMAIN,
+        context={"source": config_entries.SOURCE_ZEROCONF},
+        data={
+            "type": "_mediaremotetv._tcp.local.",
+            "name": "Kitchen",
+            "properties": {"UniqueIdentifier": "mrpid", "Name": "Kitchen"},
+        },
+    )
+
+    # Verify that _both_ protocols are paired
+    result2 = await hass.config_entries.flow.async_configure(
+        result["flow_id"],
+        {},
+    )
+    assert result2["type"] == data_entry_flow.RESULT_TYPE_FORM
+    assert result2["step_id"] == "pair_with_pin"
+    assert result2["description_placeholders"] == {"protocol": "MRP"}
+
+    result3 = await hass.config_entries.flow.async_configure(
+        result["flow_id"],
+        {"pin": 1234},
+    )
+    assert result3["type"] == data_entry_flow.RESULT_TYPE_FORM
+    assert result3["step_id"] == "pair_with_pin"
+    assert result3["description_placeholders"] == {"protocol": "AirPlay"}
+
+    result4 = await hass.config_entries.flow.async_configure(
+        result["flow_id"],
+        {"pin": 1234},
+    )
+    assert result4["type"] == data_entry_flow.RESULT_TYPE_CREATE_ENTRY
 
 
 # Re-configuration
