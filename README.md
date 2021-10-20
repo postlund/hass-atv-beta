@@ -28,6 +28,10 @@ shipped with Home Assistant:
 
 ## Changes
 
+## Release 1.6
+
+Amateur hour: fix another error with the TTS change in previous release.
+
 ### Release 1.5
 
 Fix error when using TTS.

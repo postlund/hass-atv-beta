@@ -227,7 +227,7 @@ class AppleTvMediaPlayer(AppleTVEntity, MediaPlayerEntity):
 
             try:
 
-                async def _wait_for_tts_file(self, tts_file):
+                async def _wait_for_tts_file(tts_file):
                     _LOGGER.debug("Waiting for TTS file %s to appear", tts_file)
                     while not path.exists(tts_file):
                         await asyncio.sleep(0.5)
