@@ -28,6 +28,10 @@ shipped with Home Assistant:
 
 ## Changes
 
+### Release 1.5
+
+Fix error when using TTS.
+
 ### Release 1.4
 
 * Lots of work has been done to prevent the same device showing up multiple times in the
