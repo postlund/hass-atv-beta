@@ -28,6 +28,19 @@ shipped with Home Assistant:
 
 ## Changes
 
+## Release 1.7
+
+This update brings in changes made to core, which is mainly minor code quality
+updates but also initial power management support. Calling turn_on or turn_off
+will now trigger sleep or wake the device (but only if supported). When sleeping,
+the `standby` is reported as state (as that is really what is happening).
+
+**IMPORTANT: State will be wrong (still "on") if you use an external speaker for
+output, like a HomePod. This is known and no fix is available for it.**
+
+Bumps to pyatv [0.9.6](https://github.com/postlund/pyatv/releases/tag/v0.9.6)
+which is just a minor service release.
+
 ## Release 1.6
 
 Amateur hour: fix another error with the TTS change in previous release.
