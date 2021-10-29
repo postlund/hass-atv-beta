@@ -28,7 +28,7 @@ shipped with Home Assistant:
 
 ## Changes
 
-## Release 1.8
+## Release 1.8(.1)
 
 Same as 1.7 but set to require Home Assistant 2021.11.0 (not yet released) as
 previous version causes a lot of problems.
