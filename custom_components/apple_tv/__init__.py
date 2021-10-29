@@ -103,14 +103,15 @@ async def async_migrate_entry(hass, config_entry):
     """Migrate old entry."""
     _LOGGER.debug("Migrating from version %s", config_entry.version)
 
-    if config_entry.version == 1:
+    if config_entry.version in [1, 2]:
         new = {**config_entry.data}
 
         # Not used anymore
-        del new[CONF_PROTOCOL]
+        if CONF_PROTOCOL in new:
+            del new[CONF_PROTOCOL]
 
         config_entry.data = {**new}
-        config_entry.version = 2
+        config_entry.version = 3
 
     _LOGGER.info("Migration to version %s successful", config_entry.version)
 
