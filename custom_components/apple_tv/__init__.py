@@ -30,12 +30,7 @@ from homeassistant.helpers.dispatcher import (
 )
 from homeassistant.helpers.entity import DeviceInfo, Entity
 
-from .const import (
-    CONF_CREDENTIALS,
-    CONF_IDENTIFIERS,
-    CONF_START_OFF,
-    DOMAIN,
-)
+from .const import CONF_CREDENTIALS, CONF_IDENTIFIERS, CONF_START_OFF, DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -53,9 +48,6 @@ async def async_setup_entry(hass, entry):
     """Set up a config entry for Apple TV."""
     manager = AppleTVManager(hass, entry)
     hass.data.setdefault(DOMAIN, {})[entry.unique_id] = manager
-
-    if CONF_IDENTIFIERS not in entry.data:
-        entry.data[CONF_IDENTIFIERS] = [entry.unique_id]
 
     async def on_hass_stop(event):
         """Stop push updates when hass stops."""
@@ -260,7 +252,9 @@ class AppleTVManager:
 
     async def _scan(self):
         """Try to find device by scanning for it."""
-        identifiers = set(self.config_entry.data[CONF_IDENTIFIERS])
+        identifiers = set(
+            self.config_entry.data.get(CONF_IDENTIFIERS, [self.config_entry.unique_id])
+        )
         address = self.config_entry.data[CONF_ADDRESS]
 
         # Only scan for and set up protocols that was successfully paired
