@@ -11,11 +11,12 @@ from pyatv.helpers import get_unique_id
 import voluptuous as vol
 
 from homeassistant import config_entries, data_entry_flow
-from homeassistant.components.zeroconf import async_get_instance
-from homeassistant.const import CONF_ADDRESS, CONF_NAME, CONF_PIN, CONF_TYPE
+from homeassistant.components import zeroconf
+from homeassistant.const import CONF_ADDRESS, CONF_NAME, CONF_PIN
 from homeassistant.core import callback
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
+from homeassistant.helpers.typing import DiscoveryInfoType
 
 from .const import CONF_CREDENTIALS, CONF_IDENTIFIERS, CONF_START_OFF, DOMAIN
 
@@ -128,7 +129,7 @@ class AppleTVConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             except DeviceNotFound:
                 errors["base"] = "no_devices_found"
             except DeviceAlreadyConfigured:
-                errors["base"] = "already_configured_device"
+                errors["base"] = "already_configured"
             except Exception:  # pylint: disable=broad-except
                 _LOGGER.exception("Unexpected exception")
                 errors["base"] = "unknown"
@@ -145,11 +146,13 @@ class AppleTVConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             errors=errors,
         )
 
-    async def async_step_zeroconf(self, discovery_info):
+    async def async_step_zeroconf(
+        self, discovery_info: DiscoveryInfoType
+    ) -> data_entry_flow.FlowResult:
         """Handle device found via zeroconf."""
-        service_type = discovery_info[CONF_TYPE][:-1]  # Remove leading .
-        name = discovery_info[CONF_NAME].replace(f".{service_type}.", "")
-        properties = discovery_info["properties"]
+        service_type = discovery_info[zeroconf.ATTR_TYPE][:-1]  # Remove leading .
+        name = discovery_info[zeroconf.ATTR_NAME].replace(f".{service_type}.", "")
+        properties = discovery_info[zeroconf.ATTR_PROPERTIES]
 
         # Extract unique identifier from service
         self.scan_filter = get_unique_id(service_type, name, properties)
@@ -311,7 +314,7 @@ class AppleTVConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         pair_args = {}
         if self.protocol == Protocol.DMAP:
             pair_args["name"] = "Home Assistant"
-            pair_args["zeroconf"] = await async_get_instance(self.hass)
+            pair_args["zeroconf"] = await zeroconf.async_get_instance(self.hass)
 
         # Initiate the pairing process
         abort_reason = None

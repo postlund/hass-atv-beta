@@ -6,18 +6,19 @@ from pyatv import exceptions
 from pyatv.const import PairingRequirement, Protocol
 import pytest
 
-from custom_components.apple_tv.const import CONF_START_OFF, DOMAIN
 from homeassistant import config_entries, data_entry_flow
+from homeassistant.components import zeroconf
+from homeassistant.components.apple_tv.const import CONF_START_OFF, DOMAIN
 
 from .common import airplay_service, create_conf, mrp_service
 
 from tests.common import MockConfigEntry
 
-DMAP_SERVICE = {
-    "type": "_touch-able._tcp.local.",
-    "name": "dmapid",
-    "properties": {"CtlN": "Apple TV"},
-}
+DMAP_SERVICE = zeroconf.HaServiceInfo(
+    type="_touch-able._tcp.local.",
+    name="dmapid._touch-able._tcp.local.",
+    properties={"CtlN": "Apple TV"},
+)
 
 
 @pytest.fixture(autouse=True)
@@ -239,7 +240,7 @@ async def test_user_adds_existing_device(hass, mrp_device):
         {"device_input": "127.0.0.1"},
     )
     assert result2["type"] == data_entry_flow.RESULT_TYPE_FORM
-    assert result2["errors"] == {"base": "already_configured_device"}
+    assert result2["errors"] == {"base": "already_configured"}
 
 
 async def test_user_connection_failed(hass, mrp_device, pairing_mock):
@@ -466,11 +467,11 @@ async def test_zeroconf_unsupported_service_aborts(hass):
     result = await hass.config_entries.flow.async_init(
         DOMAIN,
         context={"source": config_entries.SOURCE_ZEROCONF},
-        data={
-            "type": "_dummy._tcp.local.",
-            "name": "dummy",
-            "properties": {},
-        },
+        data=zeroconf.HaServiceInfo(
+            type="_dummy._tcp.local.",
+            name="test",
+            properties={},
+        ),
     )
     assert result["type"] == data_entry_flow.RESULT_TYPE_ABORT
     assert result["reason"] == "unknown"
