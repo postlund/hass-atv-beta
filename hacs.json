@@ -2,5 +2,6 @@
     "name": "Apple TV Beta",
     "domains": ["media_player", "remote"],
     "render_readme": true,
-    "iot_class": "Local Push"
+    "iot_class": "Local Push",
+    "homeassistant": "2021.11.0"
 }

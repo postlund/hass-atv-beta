@@ -28,6 +28,20 @@ shipped with Home Assistant:
 
 ## Changes
 
+## Release 1.9.0
+
+Pulled in more updates from core (just minor changes). Config entry version has
+been reverted back to version 1 after feedback from PR to core. This forces everyone
+to remove devices and add them again, should be the last time. The benefit here
+is that we maintain backwards compatibility when jumping between Home Assistant
+versions. Devices are clearly marked under the Integrations page and everything
+can be fixed from frontend (no fiddling with files this time). This is my bad as
+I was not aware of how versions are supposed to work, sorry!
+
+The "reconfiguration" option has been removed. No one probably used it.
+
+This version **requires** Home Assistant 2021.11.0 or later.
+
 ## Release 1.8(.1)
 
 Same as 1.7 but set to require Home Assistant 2021.11.0 (not yet released) as
