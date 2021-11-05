@@ -28,7 +28,7 @@ shipped with Home Assistant:
 
 ## Changes
 
-## Release 1.9.0
+## Release 1.9.0 (1.9.1)
 
 Pulled in more updates from core (just minor changes). Config entry version has
 been reverted back to version 1 after feedback from PR to core. This forces everyone

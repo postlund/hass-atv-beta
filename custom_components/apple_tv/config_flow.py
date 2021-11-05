@@ -150,9 +150,9 @@ class AppleTVConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self, discovery_info: DiscoveryInfoType
     ) -> data_entry_flow.FlowResult:
         """Handle device found via zeroconf."""
-        service_type = discovery_info[zeroconf.ATTR_TYPE][:-1]  # Remove leading .
-        name = discovery_info[zeroconf.ATTR_NAME].replace(f".{service_type}.", "")
-        properties = discovery_info[zeroconf.ATTR_PROPERTIES]
+        service_type = discovery_info["type"][:-1]  # Remove leading .
+        name = discovery_info["name"].replace(f".{service_type}.", "")
+        properties = discovery_info["properties"]
 
         # Extract unique identifier from service
         self.scan_filter = get_unique_id(service_type, name, properties)
