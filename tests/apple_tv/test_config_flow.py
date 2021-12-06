@@ -14,7 +14,10 @@ from .common import airplay_service, create_conf, mrp_service
 
 from tests.common import MockConfigEntry
 
-DMAP_SERVICE = zeroconf.HaServiceInfo(
+DMAP_SERVICE = zeroconf.ZeroconfServiceInfo(
+    host="mock_host",
+    hostname="mock_hostname",
+    port=None,
     type="_touch-able._tcp.local.",
     name="dmapid._touch-able._tcp.local.",
     properties={"CtlN": "Apple TV"},
@@ -24,13 +27,14 @@ DMAP_SERVICE = zeroconf.HaServiceInfo(
 @pytest.fixture(autouse=True)
 def use_mocked_zeroconf(mock_zeroconf):
     """Mock zeroconf in all tests."""
-    pass
 
 
 @pytest.fixture(autouse=True)
 def mock_setup_entry():
     """Mock setting up a config entry."""
-    with patch("custom_components.apple_tv.async_setup_entry", return_value=True):
+    with patch(
+        "homeassistant.components.apple_tv.async_setup_entry", return_value=True
+    ):
         yield
 
 
@@ -459,6 +463,41 @@ async def test_user_pair_begin_unexpected_error(hass, mrp_device, pairing_mock):
     assert result2["reason"] == "unknown"
 
 
+async def test_ignores_disabled_service(hass, airplay_with_disabled_mrp, pairing):
+    """Test adding device with only DMAP service."""
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": config_entries.SOURCE_USER}
+    )
+
+    # Find based on mrpid (but do not pair that service since it's disabled)
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"],
+        {"device_input": "mrpid"},
+    )
+    assert result["type"] == data_entry_flow.RESULT_TYPE_FORM
+    assert result["description_placeholders"] == {
+        "name": "AirPlay Device",
+        "type": "Unknown",
+    }
+
+    result2 = await hass.config_entries.flow.async_configure(result["flow_id"], {})
+    assert result2["type"] == data_entry_flow.RESULT_TYPE_FORM
+    assert result2["description_placeholders"] == {"protocol": "AirPlay"}
+
+    result3 = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {"pin": 1111}
+    )
+    assert result3["type"] == "create_entry"
+    assert result3["data"] == {
+        "address": "127.0.0.1",
+        "credentials": {
+            Protocol.AirPlay.value: "airplay_creds",
+        },
+        "identifiers": ["mrpid", "airplayid"],
+        "name": "AirPlay Device",
+    }
+
+
 # Zeroconf
 
 
@@ -467,9 +506,12 @@ async def test_zeroconf_unsupported_service_aborts(hass):
     result = await hass.config_entries.flow.async_init(
         DOMAIN,
         context={"source": config_entries.SOURCE_ZEROCONF},
-        data=zeroconf.HaServiceInfo(
+        data=zeroconf.ZeroconfServiceInfo(
+            host="mock_host",
+            hostname="mock_hostname",
+            name="mock_name",
+            port=None,
             type="_dummy._tcp.local.",
-            name="test",
             properties={},
         ),
     )
@@ -482,11 +524,14 @@ async def test_zeroconf_add_mrp_device(hass, mrp_device, pairing):
     result = await hass.config_entries.flow.async_init(
         DOMAIN,
         context={"source": config_entries.SOURCE_ZEROCONF},
-        data={
-            "type": "_mediaremotetv._tcp.local.",
-            "name": "Kitchen",
-            "properties": {"UniqueIdentifier": "mrpid", "Name": "Kitchen"},
-        },
+        data=zeroconf.ZeroconfServiceInfo(
+            host="mock_host",
+            hostname="mock_hostname",
+            port=None,
+            name="Kitchen",
+            properties={"UniqueIdentifier": "mrpid", "Name": "Kitchen"},
+            type="_mediaremotetv._tcp.local.",
+        ),
     )
     assert result["type"] == data_entry_flow.RESULT_TYPE_FORM
     assert result["description_placeholders"] == {
@@ -592,11 +637,14 @@ async def test_zeroconf_abort_if_other_in_progress(hass, mock_scan):
     result = await hass.config_entries.flow.async_init(
         DOMAIN,
         context={"source": config_entries.SOURCE_ZEROCONF},
-        data={
-            "type": "_airplay._tcp.local.",
-            "name": "Kitchen",
-            "properties": {"deviceid": "airplayid"},
-        },
+        data=zeroconf.ZeroconfServiceInfo(
+            host="mock_host",
+            hostname="mock_hostname",
+            port=None,
+            type="_airplay._tcp.local.",
+            name="Kitchen",
+            properties={"deviceid": "airplayid"},
+        ),
     )
 
     assert result["type"] == data_entry_flow.RESULT_TYPE_FORM
@@ -609,11 +657,14 @@ async def test_zeroconf_abort_if_other_in_progress(hass, mock_scan):
     result2 = await hass.config_entries.flow.async_init(
         DOMAIN,
         context={"source": config_entries.SOURCE_ZEROCONF},
-        data={
-            "type": "_mediaremotetv._tcp.local.",
-            "name": "Kitchen",
-            "properties": {"UniqueIdentifier": "mrpid", "Name": "Kitchen"},
-        },
+        data=zeroconf.ZeroconfServiceInfo(
+            host="mock_host",
+            hostname="mock_hostname",
+            port=None,
+            type="_mediaremotetv._tcp.local.",
+            name="Kitchen",
+            properties={"UniqueIdentifier": "mrpid", "Name": "Kitchen"},
+        ),
     )
     assert result2["type"] == data_entry_flow.RESULT_TYPE_ABORT
     assert result2["reason"] == "already_in_progress"
@@ -629,11 +680,14 @@ async def test_zeroconf_missing_device_during_protocol_resolve(
     result = await hass.config_entries.flow.async_init(
         DOMAIN,
         context={"source": config_entries.SOURCE_ZEROCONF},
-        data={
-            "type": "_airplay._tcp.local.",
-            "name": "Kitchen",
-            "properties": {"deviceid": "airplayid"},
-        },
+        data=zeroconf.ZeroconfServiceInfo(
+            host="mock_host",
+            hostname="mock_hostname",
+            port=None,
+            type="_airplay._tcp.local.",
+            name="Kitchen",
+            properties={"deviceid": "airplayid"},
+        ),
     )
 
     mock_scan.result = [
@@ -645,11 +699,14 @@ async def test_zeroconf_missing_device_during_protocol_resolve(
     await hass.config_entries.flow.async_init(
         DOMAIN,
         context={"source": config_entries.SOURCE_ZEROCONF},
-        data={
-            "type": "_mediaremotetv._tcp.local.",
-            "name": "Kitchen",
-            "properties": {"UniqueIdentifier": "mrpid", "Name": "Kitchen"},
-        },
+        data=zeroconf.ZeroconfServiceInfo(
+            host="mock_host",
+            hostname="mock_hostname",
+            port=None,
+            type="_mediaremotetv._tcp.local.",
+            name="Kitchen",
+            properties={"UniqueIdentifier": "mrpid", "Name": "Kitchen"},
+        ),
     )
 
     mock_scan.result = []
@@ -675,11 +732,14 @@ async def test_zeroconf_additional_protocol_resolve_failure(
     result = await hass.config_entries.flow.async_init(
         DOMAIN,
         context={"source": config_entries.SOURCE_ZEROCONF},
-        data={
-            "type": "_airplay._tcp.local.",
-            "name": "Kitchen",
-            "properties": {"deviceid": "airplayid"},
-        },
+        data=zeroconf.ZeroconfServiceInfo(
+            host="mock_host",
+            hostname="mock_hostname",
+            port=None,
+            type="_airplay._tcp.local.",
+            name="Kitchen",
+            properties={"deviceid": "airplayid"},
+        ),
     )
 
     mock_scan.result = [
@@ -691,11 +751,14 @@ async def test_zeroconf_additional_protocol_resolve_failure(
     await hass.config_entries.flow.async_init(
         DOMAIN,
         context={"source": config_entries.SOURCE_ZEROCONF},
-        data={
-            "type": "_mediaremotetv._tcp.local.",
-            "name": "Kitchen",
-            "properties": {"UniqueIdentifier": "mrpid", "Name": "Kitchen"},
-        },
+        data=zeroconf.ZeroconfServiceInfo(
+            host="mock_host",
+            hostname="mock_hostname",
+            port=None,
+            type="_mediaremotetv._tcp.local.",
+            name="Kitchen",
+            properties={"UniqueIdentifier": "mrpid", "Name": "Kitchen"},
+        ),
     )
 
     mock_scan.result = [create_conf("127.0.0.1", "Device", airplay_service())]
@@ -721,11 +784,14 @@ async def test_zeroconf_pair_additionally_found_protocols(
     result = await hass.config_entries.flow.async_init(
         DOMAIN,
         context={"source": config_entries.SOURCE_ZEROCONF},
-        data={
-            "type": "_airplay._tcp.local.",
-            "name": "Kitchen",
-            "properties": {"deviceid": "airplayid"},
-        },
+        data=zeroconf.ZeroconfServiceInfo(
+            host="mock_host",
+            hostname="mock_hostname",
+            port=None,
+            type="_airplay._tcp.local.",
+            name="Kitchen",
+            properties={"deviceid": "airplayid"},
+        ),
     )
 
     mock_scan.result = [
@@ -737,11 +803,14 @@ async def test_zeroconf_pair_additionally_found_protocols(
     await hass.config_entries.flow.async_init(
         DOMAIN,
         context={"source": config_entries.SOURCE_ZEROCONF},
-        data={
-            "type": "_mediaremotetv._tcp.local.",
-            "name": "Kitchen",
-            "properties": {"UniqueIdentifier": "mrpid", "Name": "Kitchen"},
-        },
+        data=zeroconf.ZeroconfServiceInfo(
+            host="mock_host",
+            hostname="mock_hostname",
+            port=None,
+            type="_mediaremotetv._tcp.local.",
+            name="Kitchen",
+            properties={"UniqueIdentifier": "mrpid", "Name": "Kitchen"},
+        ),
     )
 
     # Verify that _both_ protocols are paired

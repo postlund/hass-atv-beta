@@ -13,7 +13,7 @@ from .common import MockPairingHandler, airplay_service, create_conf, mrp_servic
 @pytest.fixture(autouse=True, name="mock_scan")
 def mock_scan_fixture():
     """Mock pyatv.scan."""
-    with patch("custom_components.apple_tv.config_flow.scan") as mock_scan:
+    with patch("homeassistant.components.apple_tv.config_flow.scan") as mock_scan:
 
         async def _scan(loop, timeout=5, identifier=None, protocol=None, hosts=None):
             if not mock_scan.hosts:
@@ -29,7 +29,7 @@ def mock_scan_fixture():
 @pytest.fixture(name="dmap_pin")
 def dmap_pin_fixture():
     """Mock pyatv.scan."""
-    with patch("custom_components.apple_tv.config_flow.randrange") as mock_pin:
+    with patch("homeassistant.components.apple_tv.config_flow.randrange") as mock_pin:
         mock_pin.side_effect = lambda start, stop: 1111
         yield mock_pin
 
@@ -37,7 +37,7 @@ def dmap_pin_fixture():
 @pytest.fixture
 def pairing():
     """Mock pyatv.scan."""
-    with patch("custom_components.apple_tv.config_flow.pair") as mock_pair:
+    with patch("homeassistant.components.apple_tv.config_flow.pair") as mock_pair:
 
         async def _pair(config, protocol, loop, session=None, **kwargs):
             handler = MockPairingHandler(
@@ -54,7 +54,7 @@ def pairing():
 @pytest.fixture
 def pairing_mock():
     """Mock pyatv.scan."""
-    with patch("custom_components.apple_tv.config_flow.pair") as mock_pair:
+    with patch("homeassistant.components.apple_tv.config_flow.pair") as mock_pair:
 
         async def _pair(config, protocol, loop, session=None, **kwargs):
             return mock_pair
@@ -101,6 +101,26 @@ def mrp_device(mock_scan):
             "127.0.0.1",
             "MRP Device",
             mrp_service(),
+        )
+    )
+    yield mock_scan
+
+
+@pytest.fixture
+def airplay_with_disabled_mrp(mock_scan):
+    """Mock pyatv.scan."""
+    mock_scan.result.append(
+        create_conf(
+            "127.0.0.1",
+            "AirPlay Device",
+            mrp_service(enabled=False),
+            conf.ManualService(
+                "airplayid",
+                Protocol.AirPlay,
+                7777,
+                {},
+                pairing_requirement=PairingRequirement.Mandatory,
+            ),
         )
     )
     yield mock_scan

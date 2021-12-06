@@ -28,6 +28,21 @@ shipped with Home Assistant:
 
 ## Changes
 
+## Release 2.0.0
+
+Uplift to pyatv 0.9.7 which restores the MRP service internally of pyatv, allowing
+migration of existing configuration (for people that have not used this component
+before but used the official version shipped with Home Assistant) without having to
+remove and add a device again.
+
+Experimental support for audio streaming from HTTP(S) is now supported, but beware
+that it is very rudimentary and likely breaks if buffering occurs. It should however
+work good enough to support Text-To-Speech, which is now supported without my
+previous hack.
+
+This release also fixes a bug that some people reported when pairing the Companion
+protocol (`TypeError: 0xc0`).
+
 ## Release 1.9.0 (1.9.1)
 
 Pulled in more updates from core (just minor changes). Config entry version has
@@ -150,13 +165,8 @@ stop works in this case. This is a limitation in pyatv: those features are not s
 
 ## Text-To-Speech
 
-A hack to support TTS is included here. It will likely not be included in the final
-merged version of the integration, but hopefully serve as a PoC to show what is needed
-to support it. The goal is to come up with a proper way of doing this.
-
-This is built on top of "Streaming audio" above, so the same limitations apply.
-
-**Again, please do not open issues regarding this!**
+Experimental support for Text-To-Speech is included built on top of "Streaming audio"
+above, so the same limitations apply.
 
 ## Debug logs
 
