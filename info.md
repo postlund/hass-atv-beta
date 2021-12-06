@@ -28,7 +28,21 @@ shipped with Home Assistant:
 
 ## Changes
 
+## Release 2.1.0
+
+**REQUIRES HOME ASSISTANT 2021.12.x OR LATER!!!**
+
+Here comes some new features:
+
+* Support for launching apps! Use `select_source` or the media browser. Only works on
+  devices running tvOS and if Companion has been paired. If apps aren't shown, remove
+  and add the device again and make sure that the *Companion* protocol is paired.
+* Current volume is now available and `volume_set` can be used to set a specific volume.
+* The following fields are now available if an app sets them: TV series title, episode
+  and season number.
 ## Release 2.0.0
+
+**REQUIRES HOME ASSISTANT 2021.12.x OR LATER!!!**
 
 Uplift to pyatv 0.9.7 which restores the MRP service internally of pyatv, allowing
 migration of existing configuration (for people that have not used this component
