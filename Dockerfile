@@ -1,4 +1,4 @@
-FROM python:3.9
+FROM python:3.10
 
 ARG USER=postlund
 ARG UID=1000

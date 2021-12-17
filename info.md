@@ -2,9 +2,6 @@
 
 **==> READ EVERYTHING BEFORE UPGRADING!!! <==**
 
-**TL;DR Initial work to support tvOS 15. Old config is not compatible, please remove
-previously added devices before upgrading (or let me know what happens if you don't)!**
-
 This is the beta version of the Apple TV integration for Home Assistant. Use with
 care, possibly unstable and/or non-working code lives here. Be warned (but also, be brave).
 
@@ -19,14 +16,33 @@ shipped with Home Assistant:
 
 * tvOS 15 support
 * HomePods (full media controls)
-* Local audio files can be streamed via RAOP (AirPlay) to all supported devices
-  via the `play_media` service
+* Local audio files and HTTP(S) can be streamed via RAOP (AirPlay) to all supported devices
+  via the `play_media` service. Make sure `media_type` is set to `music`.
 * Basic support for arbitrary AirPlay speakers. Metadata **ONLY** works when streaming
   from Home Assistant, i.e. it will *not* reflect what someone else is streaming to
-  the device (the HomePod being an exception). Only `Stop` button works.
+  the device (the HomePod being an exception). Only `Stop` and `Pause` button works.
 * Music app/iTunes in macOS can be controlled
+* App launching via `input_source` and media browser (no app icons)
+* Support for `volume_set`
+* New fields: `media_content_id`, `series_name`, `episode` and `season`
 
 ## Changes
+
+## Release 2.2.0
+
+**REQUIRES HOME ASSISTANT 2021.12.x OR LATER!!!**
+
+Updates to pyatv 0.9.8 which brings a few fixes (most relevant here):
+
+* As the power state detection is very unreliable, it is now derived in comibation with
+  play state (a device could previously be seen as powered off while playing something).
+  If something is playing then the device is considered on.
+* Button presses are more reliable and should not be ignore or get "stuck" anymore.
+* Pressing the pause button when streaming to an AirPlay device will now stop playback.
+
+Changes have been merged back from Home Assistant, which includes a lot of performance
+updates related to device discovery via Zeroconf. Might be notable if you have many
+devices.
 
 ## Release 2.1.0
 
