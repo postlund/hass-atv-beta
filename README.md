@@ -28,6 +28,22 @@ shipped with Home Assistant:
 
 ## Changes
 
+## Release 3.0.0
+
+Synchronize with Home Assistant 2022.2.0, i.e. this is exactly the same code
+that is shipped with that release (except for translations, only english is
+included here). Contains:
+
+* Lots of (performance) improvements for device discovery
+* Re-connect bug is fixed
+* Errors regarding "BlockedStateError" should be gone
+* App list is sorted alphabetically
+
+This release will no longer discover generic AirPlay devices, e.g. Sonos speakers
+or TVs supporting AirPlay. Only Apple devices will be discovered. You can still
+try adding generic AirPlay devices manually, e.g. by name or address. AirPlay v1
+devices should work, most AirPlay v2 does not however.
+
 ## Release 2.2.0
 
 **REQUIRES HOME ASSISTANT 2021.12.x OR LATER!!!**
