@@ -28,6 +28,10 @@ shipped with Home Assistant:
 
 ## Changes
 
+## Release 3.0.1
+
+Same as 3.0.0 but version added to manifest.
+
 ## Release 3.0.0
 
 Synchronize with Home Assistant 2022.2.0, i.e. this is exactly the same code

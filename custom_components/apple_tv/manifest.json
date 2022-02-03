@@ -21,6 +21,7 @@
     {"type":"_raop._tcp.local.", "properties": {"am":"airport*"}}
   ],
   "codeowners": ["@postlund"],
+  "version": "3.0.1",
   "iot_class": "local_push",
   "loggers": ["pyatv", "srptools"]
 }
